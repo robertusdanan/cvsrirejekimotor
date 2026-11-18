@@ -132,6 +132,7 @@ require __DIR__ . '/templates/admin_header.php';
 </form>
 
 <h2>Daftar Pengguna</h2>
+<div class="admin-table-wrap">
 <table class="admin-table">
   <thead><tr><th>Username</th><th>Role</th><th>Dibuat</th><th>Ganti Password</th><th>Aksi</th></tr></thead>
   <tbody>
@@ -171,4 +172,5 @@ require __DIR__ . '/templates/admin_header.php';
     <?php endforeach; ?>
   </tbody>
 </table>
+</div>
 <?php require __DIR__ . '/templates/admin_footer.php'; ?>

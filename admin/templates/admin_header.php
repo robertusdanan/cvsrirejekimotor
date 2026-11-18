@@ -8,7 +8,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 <title>Admin | CV Sri Rejeki Motor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/admin.css">
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -20,12 +20,16 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
       <a href="/" target="_blank" class="admin-view-site" title="Buka Website Publik">&#8599; Lihat Web</a>
     </div>
     <nav>
+      <span class="admin-nav-label">Utama</span>
       <a href="/admin/index.php" class="<?= $currentPage === 'index.php' ? 'is-active' : '' ?>">Dashboard</a>
+      <span class="admin-nav-label">Katalog</span>
       <a href="/admin/products.php" class="<?= ($currentPage === 'products.php' || $currentPage === 'product_edit.php' || $currentPage === 'product_new.php') ? 'is-active' : '' ?>">Produk Website</a>
       <a href="/admin/marketplaces.php" class="<?= $currentPage === 'marketplaces.php' ? 'is-active' : '' ?>">Marketplace</a>
+      <span class="admin-nav-label">Toko</span>
       <a href="/admin/company_profile.php" class="<?= $currentPage === 'company_profile.php' ? 'is-active' : '' ?>">Company Profile</a>
       <a href="/admin/hero.php" class="<?= $currentPage === 'hero.php' ? 'is-active' : '' ?>">Hero Beranda</a>
       <?php if (Auth::isSuperAdmin()): ?>
+      <span class="admin-nav-label">Sistem</span>
       <a href="/admin/migrasi.php" class="<?= ($currentPage === 'migrasi.php' || $currentPage === 'migrasi_template.php') ? 'is-active' : '' ?>">Migrasi Data</a>
       <a href="/admin/users.php" class="<?= $currentPage === 'users.php' ? 'is-active' : '' ?>">Pengguna Admin</a>
       <?php endif; ?>

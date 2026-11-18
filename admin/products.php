@@ -67,7 +67,7 @@ require __DIR__ . '/templates/admin_header.php';
     </form>
 </div>
 
-<div class="overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200">
+<div class="overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200 admin-table-wrap">
     <table class="w-full text-left text-sm text-slate-600">
         <thead class="bg-slate-50 text-xs uppercase text-slate-500 border-b border-slate-200">
             <tr>
