@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="admin-login-body">
   <form method="post" class="admin-login-form">
+    <img src="/assets/img/logo.webp" alt="CV Sri Rejeki Motor" class="admin-login-logo">
     <h1>Login Admin</h1>
     <?php if ($error): ?><p class="error"><?= e($error) ?></p><?php endif; ?>
     <label>Username <input type="text" name="username" required autofocus></label>

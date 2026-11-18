@@ -240,7 +240,7 @@ require __DIR__ . '/../templates/header.php';
         <h2><span class="section-marker"></span>Kunjungi Toko</h2>
         <?php if (!empty($company['address'])): ?>
           <p style="font-size:0.9rem;color:var(--steel);margin:12px 0;display:flex;gap:8px;align-items:flex-start;">
-            <span style="color:var(--brass);flex-shrink:0;margin-top:3px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <span style="color:var(--blue);flex-shrink:0;margin-top:3px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
             <span><?= e($company['address']) ?></span>
           </p>
         <?php endif; ?>
