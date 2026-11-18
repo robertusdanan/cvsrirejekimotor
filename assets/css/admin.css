@@ -104,6 +104,8 @@ body { font-family: var(--a-font-body); margin: 0; background: var(--a-graphite)
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 22px; min-height: 44px; border-radius: 999px; font-size: 0.88rem; border: none; cursor: pointer; font-weight: 600; text-decoration: none; transition: all 0.2s ease; font-family: var(--a-font-body); }
 .btn-primary { background: var(--a-gold-grad); color: #1B1405; box-shadow: var(--a-shadow-gold); }
 .btn-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-primary:disabled:hover { filter: none; transform: none; }
 .btn-outline { background: var(--a-card); border: 1px solid var(--a-hairline-strong); color: var(--a-bone); }
 .btn-outline:hover { background: #23262B; border-color: var(--a-gold); }
 .btn-small { padding: 7px 14px; min-height: 36px; font-size: 0.8rem; background: #26292F; color: #fff; border-radius: 999px; }
