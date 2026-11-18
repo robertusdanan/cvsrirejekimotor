@@ -2,12 +2,22 @@
 declare(strict_types=1);
 
 /**
- * Receives Supabase Database Webhook calls (configure in Supabase: Database -> Webhooks,
- * on INSERT/UPDATE/DELETE for table `gudang`, HTTP POST to this file's public URL).
+ * Receives Supabase Database Webhook calls (configure via SQL trigger + pg_net,
+ * see supabase_webhook_setup.sql, on INSERT/UPDATE/DELETE for tables:
+ * products, product_images, marketplaces, company_profile, hero_slides).
  *
- * Any gudang change (product row, config chunk, meta chunk) triggers a full
- * cache rebuild from Supabase.
+ * Any change on those tables triggers a full cache rebuild from Supabase.
  */
+
+// Tables that actually feed the public cache (schema v2). Any webhook call
+// for a table outside this list is acknowledged but ignored.
+const WATCHED_TABLES = [
+    'products',
+    'product_images',
+    'marketplaces',
+    'company_profile',
+    'hero_slides',
+];
 
 require __DIR__ . '/../config/config.php';
 require __DIR__ . '/../src/Cache.php';
@@ -40,9 +50,9 @@ if (!is_array($payload) || !isset($payload['table'], $payload['type'])) {
     exit;
 }
 
-if ($payload['table'] !== 'gudang') {
+if (!in_array($payload['table'], WATCHED_TABLES, true)) {
     http_response_code(200); // acknowledge but ignore unrelated tables
-    echo json_encode(['status' => 'ignored']);
+    echo json_encode(['status' => 'ignored', 'table' => $payload['table']]);
     exit;
 }
 

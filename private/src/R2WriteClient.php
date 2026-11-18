@@ -347,7 +347,7 @@ final class R2WriteClient
             $c = $this->request('POST', $key, ['uploadId' => $uploadId], $xml, null);
             if (!$c['ok'] || $c['code'] !== 200) throw new R2WriteException("Gagal menyelesaikan multipart upload '$key'");
         } catch (\Throwable $e) {
-            try { $this->request('DELETE', $key, ['uploadId' => $uploadId], null, null); } catch (\Throwable) {}
+            try { $this->request('DELETE', $key, ['uploadId' => $uploadId], null, null); } catch (\Throwable $ignored) {}
             throw $e;
         }
     }

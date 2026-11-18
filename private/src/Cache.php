@@ -60,17 +60,22 @@ final class Cache
         return is_file($this->basePath . '/' . ltrim($relativePath, '/'));
     }
 
+    /**
+     * Records the last rebuild time/version for a resource, purely for
+     * diagnostics (e.g. showing "cache last refreshed at ..." in the admin
+     * panel). Stored as a small JSON file alongside the other cache files —
+     * no database involved, so there is nothing here to keep in sync with
+     * Supabase.
+     */
     public function bumpVersion(string $resource): void
     {
         try {
-            $pdo = Database::connection();
-            $stmt = $pdo->prepare(
-                "INSERT INTO cache_log (resource, version, updated_at) VALUES (:r, 1, datetime('now'))
-                 ON CONFLICT(resource) DO UPDATE SET version = version + 1, updated_at = datetime('now')"
-            );
-            $stmt->execute(['r' => $resource]);
+            $current = $this->read('_meta/' . $resource . '.json') ?? ['version' => 0];
+            $this->write('_meta/' . $resource . '.json', [
+                'version'    => ((int) ($current['version'] ?? 0)) + 1,
+                'updated_at' => gmdate('Y-m-d\TH:i:s\Z'),
+            ]);
         } catch (Throwable $e) {
-            // Non-critical log if SQLite is disabled or unreachable
             error_log('bumpVersion skipped: ' . $e->getMessage());
         }
     }

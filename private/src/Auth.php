@@ -36,28 +36,33 @@ final class Auth
         return self::$adminUsers;
     }
 
+    /** Shared Supabase REST client for login_throttle / admin_audit_log (see supabase_schema_v3.sql). */
+    private static function writer(): SupabaseWriter
+    {
+        static $writer = null;
+        if ($writer === null) {
+            $writer = new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+        }
+        return $writer;
+    }
+
     public static function attempt(string $username, string $password): bool
     {
-        // Login accounts live in Supabase (`admin_users` table); only the
-        // per-IP brute-force throttle stays in local SQLite (login_throttle),
-        // since it's unrelated to a specific account and benefits from being
-        // a fast local check on every attempt, including failed usernames.
-        $pdo = null;
-        try {
-            $pdo = Database::connection();
-        } catch (Throwable $e) {
-            // SQLite optional: throttle disabled, fail open for legitimate users
-        }
+        // Login accounts, the per-IP brute-force throttle (login_throttle) and the
+        // audit log (admin_audit_log) all live in Supabase now — no local storage.
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
         $row = null;
-        if ($pdo !== null) {
-            $throttle = $pdo->prepare('SELECT attempts, locked_until FROM login_throttle WHERE ip = ?');
-            $throttle->execute([$ip]);
-            $row = $throttle->fetch(PDO::FETCH_ASSOC);
+        try {
+            $rows = self::writer()->request('GET', '/rest/v1/login_throttle?ip=eq.' . rawurlencode($ip) . '&select=attempts,locked_until&limit=1');
+            $row = $rows[0] ?? null;
+        } catch (Throwable $e) {
+            // Throttle table unreachable: fail open on the throttle check only,
+            // the password check below still applies.
+            error_log('Auth::attempt: throttle lookup failed: ' . $e->getMessage());
         }
 
-        if ($row && $row['locked_until'] !== null && strtotime($row['locked_until']) > time()) {
+        if ($row && !empty($row['locked_until']) && strtotime($row['locked_until']) > time()) {
             usleep(300000);
             return false; // still locked out
         }
@@ -72,22 +77,28 @@ final class Auth
 
         if ($user === null || !password_verify($password, $user['password_hash'])) {
             usleep(300000); // slow down brute-force attempts
-            if ($pdo !== null) {
-                $attempts = ($row['attempts'] ?? 0) + 1;
-                $lockedUntil = $attempts >= self::MAX_ATTEMPTS
-                    ? date('Y-m-d H:i:s', time() + self::LOCKOUT_SECONDS)
-                    : null;
-                $pdo->prepare(
-                    'INSERT INTO login_throttle (ip, attempts, locked_until, updated_at) VALUES (:ip, :a, :l, datetime(\'now\'))
-                     ON CONFLICT(ip) DO UPDATE SET attempts = :a, locked_until = :l, updated_at = datetime(\'now\')'
-                )->execute(['ip' => $ip, 'a' => $attempts, 'l' => $lockedUntil]);
+            $attempts = (int) ($row['attempts'] ?? 0) + 1;
+            $lockedUntil = $attempts >= self::MAX_ATTEMPTS
+                ? gmdate('Y-m-d\TH:i:s\Z', time() + self::LOCKOUT_SECONDS)
+                : null;
+            try {
+                self::writer()->request('POST', '/rest/v1/login_throttle?on_conflict=ip', [
+                    'ip'           => $ip,
+                    'attempts'     => $attempts,
+                    'locked_until' => $lockedUntil,
+                    'updated_at'   => gmdate('Y-m-d\TH:i:s\Z'),
+                ], ['Prefer: resolution=merge-duplicates']);
+            } catch (Throwable $e) {
+                error_log('Auth::attempt: throttle update failed: ' . $e->getMessage());
             }
             return false;
         }
 
         // Successful login resets the throttle counter.
-        if ($pdo !== null) {
-            $pdo->prepare('DELETE FROM login_throttle WHERE ip = ?')->execute([$ip]);
+        try {
+            self::writer()->request('DELETE', '/rest/v1/login_throttle?ip=eq.' . rawurlencode($ip));
+        } catch (Throwable $e) {
+            error_log('Auth::attempt: throttle reset failed: ' . $e->getMessage());
         }
 
         session_regenerate_id(true);
@@ -160,9 +171,11 @@ final class Auth
     public static function audit(string $action, string $detail = ''): void
     {
         try {
-            $pdo = Database::connection();
-            $stmt = $pdo->prepare('INSERT INTO admin_audit_log (admin_username, action, detail) VALUES (?, ?, ?)');
-            $stmt->execute([$_SESSION['admin_username'] ?? 'unknown', $action, $detail]);
+            self::writer()->request('POST', '/rest/v1/admin_audit_log', [
+                'admin_username' => $_SESSION['admin_username'] ?? 'unknown',
+                'action'         => $action,
+                'detail'         => $detail,
+            ]);
         } catch (Throwable $e) {
             error_log('audit skipped: ' . $action . ' — ' . $e->getMessage());
         }
