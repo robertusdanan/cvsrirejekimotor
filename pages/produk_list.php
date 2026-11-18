@@ -12,6 +12,8 @@ if (str_starts_with($cleanWa, '0')) {
 }
 
 $index = cache()->read('products/index.json')['items'] ?? [];
+foreach ($index as &$p) { $p['nama_produk'] = displayProductName($p['nama_produk'] ?? null); }
+unset($p);
 $brands = cache()->read('brands/index.json')['items'] ?? [];
 $vehicles = cache()->read('vehicles/index.json')['items'] ?? [];
 $categories = cache()->read('categories/index.json')['items'] ?? [];

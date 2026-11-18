@@ -245,3 +245,19 @@ if (!function_exists('slugify')) {
         return trim($text, '-');
     }
 }
+
+if (!function_exists('displayProductName')) {
+    /**
+     * Nama produk seperti yang ditampilkan di website. Data sumber (export
+     * Accurate / database) dipertahankan apa adanya; koreksi ejaan hanya di
+     * lapisan tampil, supaya nama yang dilihat pengunjung selalu benar dan
+     * tidak hilang saat import ulang.
+     */
+    function displayProductName(?string $name): string
+    {
+        $name = $name ?? '';
+        // "ACK FULL SET" di export Accurate adalah typo dari "PACK FULL SET"
+        // (gasket set overhaul mesin PS100, kode ME999855).
+        return str_ireplace('ACK FULL SET', 'PACK FULL SET', $name);
+    }
+}

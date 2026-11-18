@@ -1,6 +1,8 @@
 <?php
 $company = cache()->read('company/profile.json') ?? [];
 $featured = cache()->read('homepage/featured.json')['items'] ?? [];
+foreach ($featured as &$p) { $p['nama_produk'] = displayProductName($p['nama_produk'] ?? null); }
+unset($p);
 $brands = cache()->read('brands/index.json')['items'] ?? [];
 $categories = cache()->read('categories/index.json')['items'] ?? [];
 

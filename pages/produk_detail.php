@@ -1,5 +1,6 @@
 <?php
 $product = cache()->read("products/{$slug}.json");
+if ($product !== null) { $product['nama_produk'] = displayProductName($product['nama_produk'] ?? null); }
 
 if ($product === null) {
     http_response_code(404);
@@ -204,6 +205,8 @@ require __DIR__ . '/../templates/header.php';
 // Produk Terkait: merk atau kategori sama (maks. 4), bukan produk ini sendiri
 $related = [];
 $allProducts = cache()->read('products/index.json')['items'] ?? [];
+foreach ($allProducts as &$p) { $p['nama_produk'] = displayProductName($p['nama_produk'] ?? null); }
+unset($p);
 foreach ($allProducts as $rp) {
     if (($rp['slug'] ?? '') === $product['slug']) {
         continue;
