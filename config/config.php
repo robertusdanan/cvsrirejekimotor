@@ -37,9 +37,45 @@ if (!function_exists('str_contains')) {
 }
 
 /**
- * Config loader. Reads private/.env (OUTSIDE public_html).
+ * Config loader. Secrets (.env) dan runtime state (cache, data, sqlite)
+ * tinggal di direktori `private/` SEJAJAR public_html — DI LUAR web root.
+ * File ini (kode) tinggal di repo, tapi .env TIDAK PERNAH dibaca dari
+ * dalam public_html: privateDir() selalu mengutamakan sibling private/.
+ *
+ * Layout yang didukung:
+ *   /home/USER/private/.env        <- produksi (cPanel), prioritas 1
+ *   <repo>/private/.env            <- dev lokal / staging, prioritas 2
+ *
  * Never echo, log, or return raw env values to the client.
  */
+
+if (!function_exists('privateDir')) {
+    function privateDir(): string
+    {
+        static $dir = null;
+        if ($dir !== null) {
+            return $dir;
+        }
+        // Prioritas 1: sibling private/ di luar public_html.
+        // config.php ada di <root>/config/, jadi home = dirname(__DIR__, 2).
+        $sibling = dirname(__DIR__, 2) . '/private';
+        if (is_file($sibling . '/.env')) {
+            $dir = $sibling;
+            return $dir;
+        }
+        // Prioritas 2: private/ di dalam repo (dev lokal / staging).
+        $local = __DIR__ . '/../private';
+        if (is_file($local . '/.env')) {
+            $dir = $local;
+            return $dir;
+        }
+        // Tidak ada .env di mana pun: pakai sibling bila foldernya ada
+        // (auto-create di bawah akan mengisinya dengan default publik),
+        // kalau tidak, pakai private/ lokal sebagai fallback terakhir.
+        $dir = is_dir($sibling) ? $sibling : (realpath($local) ?: $local);
+        return $dir;
+    }
+}
 
 function env_load(string $path): array
 {
@@ -58,10 +94,12 @@ function env_load(string $path): array
     return $vars;
 }
 
-$envPath = __DIR__ . '/../.env';
+$envPath = privateDir() . '/.env';
 
 // Auto-create private/.env if missing on initial cPanel deployment
-if (!is_file($envPath)) {
+// (hanya bila folder private/ sudah ada — jangan pernah membuat folder
+//  private/ di sembarang tempat).
+if (!is_file($envPath) && is_dir(privateDir())) {
     $defaultEnvContent = "SUPABASE_URL=https://tnmatvbvbaffqbzilxoz.supabase.co\n"
         . "R2_PUBLIC_URL=https://pub-7ce4b96396f24d399964a0f6f76805a7.r2.dev\n"
         . "R2_BUCKET=sri-rejeki-motor\n"
@@ -93,11 +131,14 @@ function config(string $key, $default = null)
         return $defaults[$key];
     }
 
-    // Auto-resolve storage/cache/sqlite paths if not explicitly set
+    // Auto-resolve cache/sqlite paths RELATIF KE private/ (runtime state
+    // tetap di luar public_html supaya tidak tertimpa tiap deploy).
+    // STORAGE_PATH DIHAPUS (2026-11-18): galeri produk R2-only, tidak ada
+    // lagi mirror lokal di server.
     if ($key === 'SQLITE_PATH') {
-        $dir = realpath(__DIR__ . '/../data');
+        $dir = realpath(privateDir() . '/data');
         if ($dir === false) {
-            $dir = __DIR__ . '/../data';
+            $dir = privateDir() . '/data';
             if (!is_dir($dir)) {
                 @mkdir($dir, 0755, true);
             }
@@ -105,19 +146,9 @@ function config(string $key, $default = null)
         return $dir . '/website.sqlite';
     }
     if ($key === 'CACHE_PATH') {
-        $dir = realpath(__DIR__ . '/../cache');
+        $dir = realpath(privateDir() . '/cache');
         if ($dir === false) {
-            $dir = __DIR__ . '/../cache';
-            if (!is_dir($dir)) {
-                @mkdir($dir, 0755, true);
-            }
-        }
-        return $dir;
-    }
-    if ($key === 'STORAGE_PATH') {
-        $dir = realpath(__DIR__ . '/../storage');
-        if ($dir === false) {
-            $dir = __DIR__ . '/../storage';
+            $dir = privateDir() . '/cache';
             if (!is_dir($dir)) {
                 @mkdir($dir, 0755, true);
             }
@@ -125,9 +156,9 @@ function config(string $key, $default = null)
         return $dir;
     }
     if ($key === 'DATA_PATH') {
-        $dir = realpath(__DIR__ . '/../data');
+        $dir = realpath(privateDir() . '/data');
         if ($dir === false) {
-            $dir = __DIR__ . '/../data';
+            $dir = privateDir() . '/data';
             if (!is_dir($dir)) {
                 @mkdir($dir, 0755, true);
             }

@@ -37,13 +37,19 @@ if (!function_exists('str_contains')) {
 }
 
 /**
- * Returns the absolute path to the `private/` directory.
+ * Returns the absolute path to the sibling `private/` directory.
  * Checks the parent directory FIRST (dirname(__DIR__) . '/private'), since
- * the intended production layout keeps private/ as a sibling of public_html
- * (outside the web root, for security). Falls back to a local
+ * the production layout keeps private/ as a sibling of public_html
+ * (outside the web root, for secrets + runtime state). Falls back to a local
  * __DIR__ . '/private' only if no sibling copy exists, so a stray/duplicate
  * folder accidentally left inside public_html can never shadow the real
  * data and config again.
+ *
+ * NOTE (2026-11-18): kode (config.php, src/) TIDAK LAGI dimuat dari sini —
+ * semuanya tinggal di repo (public_html/config, public_html/src) dan
+ * di-deploy otomatis. privatePath() hanya dipakai untuk hal yang memang
+ * harus di luar web root: secrets (.env) + runtime state (cache, data)
+ * + fallback legacy manifest hero.
  */
 if (!function_exists('privatePath')) {
     function privatePath(string $subpath = ''): string
@@ -64,18 +70,19 @@ if (!function_exists('privatePath')) {
     }
 }
 
-require_once privatePath('config/config.php');
-require_once privatePath('src/Cache.php');
-require_once privatePath('src/R2WriteClient.php');
-// Statistik pengunjung: file-file private/ TIDAK ikut ter-deploy oleh webhook
-// (deploy hanya menyalin public_html; ~/private/ dikelola manual). Karena itu
-// require di sini kondisional + ada stub, supaya situs tidak 500 bila file
-// statistik belum di-upload ke ~/private/src/.
-if (is_file(privatePath('src/SupabaseWriter.php'))) {
-    require_once privatePath('src/SupabaseWriter.php');
+// Kode dimuat dari repo (public_html/config, public_html/src) — ikut
+// ter-deploy otomatis di setiap push. Secrets tetap dibaca config.php
+// dari sibling ~/private/.env (lihat config/config.php).
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/src/Cache.php';
+require_once __DIR__ . '/src/R2WriteClient.php';
+// SupabaseWriter + StatistikKunjungan: require kondisional + stub,
+// supaya footer tetap tampil (0/0) bila file sedang bermasalah.
+if (is_file(__DIR__ . '/src/SupabaseWriter.php')) {
+    require_once __DIR__ . '/src/SupabaseWriter.php';
 }
-if (is_file(privatePath('src/StatistikKunjungan.php'))) {
-    require_once privatePath('src/StatistikKunjungan.php');
+if (is_file(__DIR__ . '/src/StatistikKunjungan.php')) {
+    require_once __DIR__ . '/src/StatistikKunjungan.php';
 }
 if (!class_exists('StatistikKunjungan')) {
     // Fallback tanpa-op: footer menampilkan 0/0 sampai file asli di-upload.
@@ -149,21 +156,21 @@ if (!function_exists('mediaUrl')) {
         if ($r2Url !== '') {
             return "{$r2Url}/{$path}";
         }
-        return "/storage/{$path}";
-    }
-}
-
-if (!function_exists('heroStorageDir')) {
-    function heroStorageDir(): string
-    {
-        return rtrim((string) config('STORAGE_PATH'), '/') . '/hero';
+        // R2-only (2026-11-18): tidak ada lagi fallback /storage/ — galeri
+        // produk hanya tersimpan di Cloudflare R2.
+        return '';
     }
 }
 
 if (!function_exists('heroManifestPath')) {
+    /**
+     * Manifest hero tinggal di runtime state: ~/private/data/hero/manifest.json
+     * (di luar public_html supaya tidak tertimpa tiap deploy; ditulis manual/
+     * admin, bukan dari repo).
+     */
     function heroManifestPath(): string
     {
-        return heroStorageDir() . '/manifest.json';
+        return rtrim((string) config('DATA_PATH'), '/') . '/hero/manifest.json';
     }
 }
 
@@ -171,6 +178,15 @@ if (!function_exists('heroManifest')) {
     function heroManifest(): array
     {
         $path = heroManifestPath();
+        if (!is_file($path)) {
+            // Fallback legacy ke lokasi lama (~/private/storage/hero/)
+            // bila file baru belum dipindah — hapus fallback ini setelah
+            // manifest dipindah ke data/hero/.
+            $legacy = privatePath('storage/hero/manifest.json');
+            if (is_file($legacy)) {
+                $path = $legacy;
+            }
+        }
         if (!is_file($path)) {
             return ['settings' => [], 'items' => []];
         }

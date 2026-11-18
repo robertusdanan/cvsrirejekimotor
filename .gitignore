@@ -6,17 +6,6 @@ Thumbs.db
 private/data/website.sqlite*
 *.sqlite-journal
 private/cache/*
-!private/cache/.gitkeep
-private/storage/products/*
-private/storage/hero/*.mp4
-private/storage/hero/*.webm
-private/storage/hero/*.jpg
-private/storage/hero/*.jpeg
-private/storage/hero/*.png
-private/storage/hero/*.webp
-!private/storage/products/.gitkeep
-!private/storage/hero/.gitkeep
-!private/storage/hero/manifest.json
 
 # Secrets - never commit (ditambahkan 2026-11-18)
 private/.env

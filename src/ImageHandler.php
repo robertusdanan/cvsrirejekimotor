@@ -1,6 +1,19 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * ImageHandler — R2-ONLY (2026-11-18).
+ *
+ * Semua gambar/video produk & hero HANYA disimpan di Cloudflare R2
+ * (bucket sri-rejeki-motor). TIDAK ADA lagi mirror lokal di server:
+ * tidak ada tulis/hapus ke STORAGE_PATH. Resize dilakukan di memori,
+ * hasilnya ditulis ke file temp, di-upload ke R2, lalu file temp dihapus.
+ *
+ * Konsekuensi: kredensial R2 (R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
+ * di ~/private/.env) WAJIB terisi — upload gagal dengan pesan jelas
+ * bila R2 belum dikonfigurasi, supaya tidak ada gambar yang "berhasil"
+ * di-upload tapi tidak bisa ditampilkan.
+ */
 final class ImageHandler
 {
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
@@ -12,11 +25,39 @@ final class ImageHandler
         // 'original' is stored as-is (re-encoded to WebP) for archival/backup purposes.
     ];
 
+    /** R2 client, atau null bila kredensial R2 belum dikonfigurasi. */
+    private static function r2Client(): ?R2WriteClient
+    {
+        if (!config('R2_ACCESS_KEY_ID') || !config('R2_SECRET_ACCESS_KEY')) {
+            return null;
+        }
+        return new R2WriteClient(
+            config('R2_ACCESS_KEY_ID'),
+            config('R2_SECRET_ACCESS_KEY'),
+            config('R2_S3_CLIENTS'),
+            config('R2_BUCKET')
+        );
+    }
+
+    private static function requireR2(): R2WriteClient
+    {
+        $r2 = self::r2Client();
+        if ($r2 === null) {
+            throw new RuntimeException(
+                'Upload gambar memerlukan Cloudflare R2 — kredensial R2 belum dikonfigurasi di server (~/private/.env).'
+            );
+        }
+        return $r2;
+    }
+
     /**
      * Handles a single uploaded file ($_FILES['photo']) for a given product_config.id
      * (used as the storage folder key regardless of whether the product's master data
      * comes from Supabase or was entered manually). Returns the relative file paths
      * to store in product_images.file_path, or throws on validation failure.
+     *
+     * R2-only: tiap varian di-resize di memori, ditulis ke file temp, di-upload
+     * ke R2, lalu file temp dihapus. Tidak ada file yang tersisa di server.
      */
     public static function handleUpload(array $fileEntry, string $productKey): array
     {
@@ -42,61 +83,46 @@ final class ImageHandler
             throw new RuntimeException('Gagal memproses gambar.');
         }
 
+        $r2 = self::requireR2();
         $id = bin2hex(random_bytes(8)); // generated identifier, never trust the user's filename
-        $storageRoot = rtrim(config('STORAGE_PATH'), '/') . "/products/{$productKey}";
         $paths = [];
 
-        $r2 = null;
-        if (config('R2_ACCESS_KEY_ID') && config('R2_SECRET_ACCESS_KEY')) {
-            $r2 = new R2WriteClient(
-                config('R2_ACCESS_KEY_ID'),
-                config('R2_SECRET_ACCESS_KEY'),
-                config('R2_S3_CLIENTS'),
-                config('R2_BUCKET')
-            );
-        }
-
-        foreach (self::SIZES as $label => $maxDimension) {
-            $dir = "{$storageRoot}/{$label}";
-            if (!is_dir($dir)) {
-                mkdir($dir, 0750, true);
+        try {
+            foreach (self::SIZES as $label => $maxDimension) {
+                $key = "products/{$productKey}/{$label}/{$id}.webp";
+                self::uploadResized($r2, $source, $maxDimension, $key, 82);
+                $paths[$label] = $key;
             }
-            $resized = self::resize($source, $maxDimension);
-            $filename = "{$id}.webp";
-            $fullPath = "{$dir}/{$filename}";
-            imagewebp($resized, $fullPath, 82);
-            imagedestroy($resized);
-            $paths[$label] = "products/{$productKey}/{$label}/{$filename}";
 
-            if ($r2 !== null) {
-                try {
-                    $r2->putObjectFromFile("products/{$productKey}/{$label}/{$filename}", $fullPath, 'image/webp');
-                } catch (Throwable $e) {
-                    error_log('R2 upload warning: ' . $e->getMessage());
-                }
-            }
+            // Store the original too (re-encoded, not the raw untrusted upload bytes).
+            self::uploadResized($r2, $source, PHP_INT_MAX, "products/{$productKey}/original/{$id}.webp", 90);
+            $paths['original'] = "products/{$productKey}/original/{$id}.webp";
+        } finally {
+            imagedestroy($source);
         }
-
-        // Store the original too (re-encoded, not the raw untrusted upload bytes).
-        $originalDir = "{$storageRoot}/original";
-        if (!is_dir($originalDir)) {
-            mkdir($originalDir, 0750, true);
-        }
-        $originalPath = "{$originalDir}/{$id}.webp";
-        imagewebp($source, $originalPath, 90);
-        $paths['original'] = "products/{$productKey}/original/{$id}.webp";
-
-        if ($r2 !== null) {
-            try {
-                $r2->putObjectFromFile("products/{$productKey}/original/{$id}.webp", $originalPath, 'image/webp');
-            } catch (Throwable $e) {
-                error_log('R2 upload warning: ' . $e->getMessage());
-            }
-        }
-
-        imagedestroy($source);
 
         return $paths; // caller decides which variant path(s) to store in product_images
+    }
+
+    /**
+     * Resize satu varian di memori -> tulis ke file temp -> upload ke R2 ->
+     * hapus file temp. $maxDimension = PHP_INT_MAX berarti tanpa resize.
+     */
+    private static function uploadResized(R2WriteClient $r2, $source, int $maxDimension, string $key, int $quality): void
+    {
+        $resized = self::resize($source, $maxDimension);
+        $tmp = tempnam(sys_get_temp_dir(), 'srm_img_');
+        if ($tmp === false) {
+            imagedestroy($resized);
+            throw new RuntimeException('Gagal membuat file sementara untuk upload.');
+        }
+        try {
+            imagewebp($resized, $tmp, $quality);
+            $r2->putObjectFromFile($key, $tmp, 'image/webp');
+        } finally {
+            imagedestroy($resized);
+            @unlink($tmp);
+        }
     }
 
     /**
@@ -120,7 +146,8 @@ final class ImageHandler
 
     /**
      * Stores a video file as-is (no re-encode) for hero slides. Returns the
-     * full public URL of the stored file.
+     * full public URL of the stored file. R2-only: file di-copy ke temp,
+     * di-upload ke R2, lalu temp dihapus.
      */
     public function uploadDirectFile(array $fileEntry, string $folder): string
     {
@@ -134,36 +161,30 @@ final class ImageHandler
         if (!in_array($ext, ['mp4', 'webm', 'mov'], true)) {
             throw new RuntimeException('Format video tidak didukung. Gunakan MP4 atau WebM.');
         }
+        $r2 = self::requireR2();
         $id = bin2hex(random_bytes(8));
         $key = trim($folder, '/') . '/' . $id . '.' . $ext;
-        $localPath = rtrim((string) config('STORAGE_PATH'), '/') . '/' . $key;
-        $dir = dirname($localPath);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0750, true);
+        $tmp = tempnam(sys_get_temp_dir(), 'srm_vid_');
+        if ($tmp === false) {
+            throw new RuntimeException('Gagal membuat file sementara untuk upload.');
         }
-        if (!@move_uploaded_file($fileEntry['tmp_name'], $localPath)
-            && !@copy($fileEntry['tmp_name'], $localPath)) {
-            throw new RuntimeException('Gagal menyimpan video.');
-        }
-        if (config('R2_ACCESS_KEY_ID') && config('R2_SECRET_ACCESS_KEY')) {
-            try {
-                $r2 = new R2WriteClient(
-                    config('R2_ACCESS_KEY_ID'),
-                    config('R2_SECRET_ACCESS_KEY'),
-                    config('R2_S3_CLIENTS'),
-                    config('R2_BUCKET')
-                );
-                $mime = $ext === 'webm' ? 'video/webm' : 'video/mp4';
-                $r2->putObjectFromFile($key, $localPath, $mime);
-            } catch (Throwable $e) {
-                error_log('R2 upload warning: ' . $e->getMessage());
+        try {
+            // move_uploaded_file gagal untuk file yang bukan hasil upload
+            // HTTP (mis. hasil ekstrak .zip di import massal) — copy jadi fallback.
+            if (!@move_uploaded_file($fileEntry['tmp_name'], $tmp)
+                && !@copy($fileEntry['tmp_name'], $tmp)) {
+                throw new RuntimeException('Gagal menyimpan video.');
             }
+            $mime = $ext === 'webm' ? 'video/webm' : 'video/mp4';
+            $r2->putObjectFromFile($key, $tmp, $mime);
+        } finally {
+            @unlink($tmp);
         }
         return self::publicUrl($key);
     }
 
     /**
-     * Deletes one stored image from R2 and from the local storage mirror.
+     * Deletes one stored image from R2 (R2-only, tidak ada mirror lokal).
      * Removes every size variant sharing the same file id, since the admin
      * deletes a whole image (not one variant).
      */
@@ -177,25 +198,14 @@ final class ImageHandler
             }
             $keys = array_values(array_unique($keys));
         }
-        $storageRoot = rtrim((string) config('STORAGE_PATH'), '/');
-        foreach ($keys as $k) {
-            @unlink($storageRoot . '/' . $k);
+        $r2 = self::r2Client();
+        if ($r2 === null) {
+            error_log('R2 delete warning: kredensial R2 belum dikonfigurasi, hapus dilewati untuk ' . $key);
+            return;
         }
-        if (config('R2_ACCESS_KEY_ID') && config('R2_SECRET_ACCESS_KEY')) {
+        foreach ($keys as $k) {
             try {
-                $r2 = new R2WriteClient(
-                    config('R2_ACCESS_KEY_ID'),
-                    config('R2_SECRET_ACCESS_KEY'),
-                    config('R2_S3_CLIENTS'),
-                    config('R2_BUCKET')
-                );
-                foreach ($keys as $k) {
-                    try {
-                        $r2->deleteObject($k);
-                    } catch (Throwable $e) {
-                        error_log('R2 delete warning: ' . $e->getMessage());
-                    }
-                }
+                $r2->deleteObject($k);
             } catch (Throwable $e) {
                 error_log('R2 delete warning: ' . $e->getMessage());
             }
@@ -206,6 +216,7 @@ final class ImageHandler
      * Full public URL for an R2 key (same rule as the public mediaUrl()).
      * Kept here because ImageHandler is also loaded by contexts that never
      * include the public bootstrap (e.g. the Supabase webhook handler).
+     * Tanpa R2_PUBLIC_URL, kembalikan '' (tidak ada lagi fallback /storage/).
      */
     private static function publicUrl(string $key): string
     {
@@ -217,7 +228,7 @@ final class ImageHandler
         if ($r2Url !== '') {
             return "{$r2Url}/{$key}";
         }
-        return "/storage/{$key}";
+        return '';
     }
 
     private static function loadImage(string $path, string $mime)

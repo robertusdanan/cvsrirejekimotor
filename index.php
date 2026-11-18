@@ -18,7 +18,7 @@ if (php_sapi_name() === 'cli-server') {
 try {
     require __DIR__ . '/bootstrap.php';
 } catch (Throwable $e) {
-    // Bootstrap itself failed (e.g. broken/incompatible code in ../private).
+    // Bootstrap itself failed (e.g. broken/incompatible code in config/ or src/).
     // Do NOT try to render pages/error.php here: it needs templates/header.php,
     // which calls cache() and other helpers that bootstrap.php never finished
     // defining. Rendering it anyway causes a second, uncaught fatal error and
@@ -73,8 +73,6 @@ try {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => 'cpanel-setup-key.php file not found on server']);
         }
-    } elseif ($segments[0] === 'storage' && count($segments) > 1) {
-        require __DIR__ . '/pages/storage_serve.php';
     } elseif ($segments[0] === 'produk' && count($segments) === 1) {
         require __DIR__ . '/pages/produk_list.php';
     } elseif ($segments[0] === 'produk' && count($segments) === 2) {

@@ -3,17 +3,20 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-require_once privatePath('config/config.php');
-require_once privatePath('src/Database.php');
-require_once privatePath('src/SupabaseAdminUsers.php');
-require_once privatePath('src/Auth.php');
-require_once privatePath('src/Supabase.php');
-require_once privatePath('src/SupabaseWriter.php');
-require_once privatePath('src/XlsxReader.php');
-require_once privatePath('src/Cache.php');
-require_once privatePath('src/CacheBuilder.php');
-require_once privatePath('src/ImageHandler.php');
-require_once privatePath('src/R2WriteClient.php');
+// Kode dimuat dari repo (public_html/config, public_html/src) — ikut
+// ter-deploy otomatis. Secrets tetap dibaca config.php dari sibling
+// ~/private/.env (lihat config/config.php).
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../src/Database.php';
+require_once __DIR__ . '/../src/SupabaseAdminUsers.php';
+require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/Supabase.php';
+require_once __DIR__ . '/../src/SupabaseWriter.php';
+require_once __DIR__ . '/../src/XlsxReader.php';
+require_once __DIR__ . '/../src/Cache.php';
+require_once __DIR__ . '/../src/CacheBuilder.php';
+require_once __DIR__ . '/../src/ImageHandler.php';
+require_once __DIR__ . '/../src/R2WriteClient.php';
 
 Auth::startSecureSession();
 

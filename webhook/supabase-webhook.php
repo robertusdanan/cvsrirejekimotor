@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Receives Supabase Database Webhook calls (configure via SQL trigger + pg_net,
- * see supabase_webhook_setup.sql, on INSERT/UPDATE/DELETE for tables:
+ * see README.md section 7, on INSERT/UPDATE/DELETE for tables:
  * products, product_images, marketplaces, company_profile, hero_slides).
  *
  * Any change on those tables triggers a full cache rebuild from Supabase.
@@ -26,7 +26,7 @@ require __DIR__ . '/../src/CacheBuilder.php';
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'method not allowed']);
     exit;

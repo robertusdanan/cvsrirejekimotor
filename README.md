@@ -23,11 +23,12 @@ Supaya tidak salah upload folder, pahami dulu pembagian ini:
 
 | Bagian | Isi | Ditaruh di |
 |---|---|---|
-| **`srm/`** (folder ini) | Kode publik website (halaman, admin panel, aset CSS/JS) | **DI DALAM** `public_html` (isinya langsung, bukan foldernya) |
-| **`private/`** | Konfigurasi (`.env`), database SQLite lokal, cache, file upload produk, script CLI | **DI LUAR** `public_html`, sejajar dengannya |
-| **Supabase** | Data produk (`gudang`) dan akun login admin (`admin_users`) | Cloud, bukan di hosting sama sekali |
+| **`srm/`** (folder ini) | Kode website (halaman, admin panel, aset CSS/JS, `src/`, `config/`, `webhook/`, `scripts/`, `database/`) | **DI DALAM** `public_html` (isinya langsung, bukan foldernya) |
+| **`private/`** | HANYA secrets (`.env`, `deploy-token.txt`) + runtime state (cache JSON, database SQLite lokal, `data/hero/manifest.json`) | **DI LUAR** `public_html`, sejajar dengannya |
+| **Supabase** | Data produk (`products`, `product_images`) dan akun login admin (`admin_users`) | Cloud, bukan di hosting sama sekali |
+| **Cloudflare R2** | Semua gambar/video produk & hero (bucket `sri-rejeki-motor`) — tidak ada salinan lokal di server | Cloud, bukan di hosting sama sekali |
 
-Kenapa `private/` harus di luar `public_html`: supaya file `.env` (isinya kredensial Supabase) dan database SQLite **tidak bisa diakses lewat browser** oleh siapa pun.
+Kenapa `private/` harus di luar `public_html`: supaya file `.env` (isinya kredensial Supabase) dan database SQLite **tidak bisa diakses lewat browser** oleh siapa pun. Sejak 2026-11-18, semua **kode** (dulu di `private/src/`, `private/config/`, `private/webhook/`, `private/scripts/`) sudah pindah ke dalam repo/`public_html` dan ikut ter-deploy otomatis di setiap push — `private/` hanya menyimpan hal yang benar-benar sensitif + data runtime yang harus bertahan antar-deploy.
 
 Login admin (`admin_users`) dan data produk (`gudang`) tersimpan di **Supabase**, bukan di hosting. Artinya kalau Anda sudah setup Supabase-nya (lewat `supabase_schema.sql` dan `supabase_admin_users.sql`), **tidak perlu setup ulang** akun/produk setiap deploy ke server baru — cukup arahkan `.env` ke project Supabase yang sama.
 
@@ -53,22 +54,21 @@ Hasil akhir di server harus seperti ini (contoh dengan username cPanel `srmuser`
 ├── public_html/          <-- isi dari folder srm/ (LANGSUNG isinya, bukan foldernya)
 │   ├── admin/
 │   ├── assets/
+│   ├── config/           (config.php — baca .env dari ~/private/)
+│   ├── database/         (skema SQL Supabase)
 │   ├── pages/
+│   ├── scripts/          (CLI: build_cache.php, cron_reconcile.php, migrate.php)
+│   ├── src/              (Cache, SupabaseWriter, ImageHandler, Auth, ...)
 │   ├── templates/
-│   ├── webhook/
+│   ├── webhook/          (supabase.php + supabase-webhook.php)
 │   ├── index.php
 │   ├── bootstrap.php
 │   ├── .htaccess
 │   └── favicon.ico
 │
-└── private/               <-- folder private/ dari project, SEJAJAR dengan public_html
-    ├── config/
-    ├── data/               (akan berisi website.sqlite setelah migrate.php dijalankan)
-    ├── cache/
-    ├── storage/
-    ├── scripts/
-    ├── src/
-    ├── webhook/
+└── private/               <-- SEJAJAR dengan public_html (di luar web root)
+    ├── cache/              (cache JSON produk — dibuat otomatis)
+    ├── data/               (website.sqlite + hero/manifest.json)
     └── .env                (buat manual, lihat bagian 5)
 ```
 
@@ -97,7 +97,7 @@ Hasil akhir di server harus seperti ini (contoh dengan username cPanel `srmuser`
 Gunakan **File Manager** cPanel (upload `.zip` lalu Extract) atau **FTP/SFTP** (FileZilla, dll):
 
 1. Upload **isi** folder `srm/` ke `public_html/` (bukan folder `srm` itu sendiri — isinya langsung).
-2. Upload folder `private/` ke `/home/USERNAME/private/` (sejajar dengan `public_html`, **bukan** di dalamnya).
+2. Buat folder `private/` di `/home/USERNAME/private/` (sejajar dengan `public_html`, **bukan** di dalamnya) — isinya hanya `.env` (bagian 4.3) + folder kosong `cache/` dan `data/` (dibuat otomatis oleh `config.php` bila belum ada). Tidak ada kode yang perlu di-upload ke `private/` — semua kode ikut dari repo.
 
 ### 4.3 Buat & Isi `private/.env`
 
@@ -108,7 +108,7 @@ File `.env` sengaja **tidak** ikut di dalam paket project (demi keamanan). Buat 
 Lewat File Manager (klik kanan folder → *Change Permissions*) atau SSH (`chmod`), set folder berikut agar bisa ditulis oleh PHP:
 
 ```bash
-chmod 755 private/data private/cache private/storage private/storage/products
+chmod 755 private/data private/cache
 ```
 
 Kalau nanti muncul error `failed to open stream: Permission denied`, ini yang perlu dicek ulang (coba naikkan ke `775` kalau `755` belum cukup, tergantung konfigurasi hosting).
@@ -118,7 +118,7 @@ Kalau nanti muncul error `failed to open stream: Permission denied`, ini yang pe
 Buka cPanel → **"Terminal"** (atau SSH kalau diaktifkan hosting Anda):
 
 ```bash
-cd ~/private
+cd ~/public_html
 php scripts/migrate.php
 ```
 
@@ -150,7 +150,6 @@ SUPABASE_SERVICE_ROLE_KEY=isi-dengan-service-role-key-dari-supabase
 
 SQLITE_PATH=/home/USERNAME/private/data/website.sqlite
 CACHE_PATH=/home/USERNAME/private/cache
-STORAGE_PATH=/home/USERNAME/private/storage
 
 WEBHOOK_SECRET=buat-string-acak-yang-panjang-dan-rahasia
 DEPLOY_WEBHOOK_TOKEN=isi-dengan-token-acak-panjang
@@ -161,7 +160,7 @@ COOKIE_SECURE=true
 **Catatan penting per-baris:**
 
 - `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` — **harus sama** dengan project Supabase yang sudah Anda setup (tempat tabel `gudang` dan `admin_users` sudah ada). Ambil dari Supabase Dashboard → Project Settings → API.
-- `SQLITE_PATH`, `CACHE_PATH`, `STORAGE_PATH` — pakai **path absolut** di server, ganti `USERNAME` dengan username cPanel Anda. Cek path home directory yang benar lewat File Manager kalau ragu.
+- `SQLITE_PATH`, `CACHE_PATH` — pakai **path absolut** di server, ganti `USERNAME` dengan username cPanel Anda. Cek path home directory yang benar lewat File Manager kalau ragu. (Tidak ada lagi `STORAGE_PATH` — galeri produk R2-only sejak 2026-11-18.)
 - `WEBHOOK_SECRET` — string acak bebas (misal hasil dari [1Password/keychain generator], atau `php -r "echo bin2hex(random_bytes(32));"`). Nilai ini juga akan dipakai di setup webhook Supabase (bagian 7).
 - `COOKIE_SECURE=true` — **wajib `true`** di production (beda dari waktu testing di `http://localhost`, yang perlu `false`). Kalau di-set `true` tapi situsnya belum HTTPS, login admin tidak akan berfungsi.
 
@@ -174,7 +173,7 @@ cPanel → **"Cron Jobs"** → tambah cron baru:
 - **Jadwal:** setiap 10–15 menit (contoh: `*/15 * * * *`)
 - **Command:**
   ```bash
-  php /home/USERNAME/private/scripts/cron_reconcile.php
+  php /home/USERNAME/public_html/scripts/cron_reconcile.php
   ```
   (Sesuaikan `php` dengan path CLI PHP yang benar, lihat [4.6](#46-cek-php-cli-path-kalau-php-tidak-dikenali) kalau perlu path lengkap.)
 
@@ -202,7 +201,7 @@ Ini mekanisme utama supaya perubahan data di Supabase (`gudang`) langsung ter-re
 - [ ] Buka `https://domainanda.com/admin/login.php` → bisa login dengan akun Super Admin yang sudah ada di Supabase
 - [ ] Cek halaman **Produk Website** di admin → tabel "Produk dari Supabase (Gudang)" menampilkan data (kalau kosong, cek `SUPABASE_URL`/key di `.env`, atau lakukan import data lewat menu **Migrasi Data**)
 - [ ] Cek menu **Migrasi Data** & **Pengguna** hanya muncul untuk akun dengan role **Super Admin**
-- [ ] Test upload 1 foto produk lewat admin, pastikan tersimpan & tampil (mengetes permission folder `private/storage`)
+- [ ] Test upload 1 foto produk lewat admin, pastikan tersimpan & tampil (gambar tersimpan di Cloudflare R2, bukan di server)
 
 ---
 
@@ -211,7 +210,7 @@ Ini mekanisme utama supaya perubahan data di Supabase (`gudang`) langsung ter-re
 Kalau sebelumnya sudah sempat isi data (company profile, marketplace links, foto produk) di XAMPP dan mau dibawa ke cPanel supaya tidak input ulang dari nol:
 
 1. Upload juga file `private/data/website.sqlite` dari XAMPP Anda ke `private/data/` di cPanel (**menimpa** file yang dibuat `migrate.php` di langkah 4.5 — jalankan `migrate.php` dulu baru timpa file ini, supaya tabel-tabel barunya tetap lengkap).
-2. Upload juga isi folder `private/storage/products/` dari XAMPP (foto-foto produk yang sudah diupload).
+2. Foto produk **tidak perlu** dipindah — semuanya sudah tersimpan di Cloudflare R2 (bukan di server).
 3. Akun login (`admin_users`) **tidak perlu** dipindahkan lagi — sudah ada di Supabase sejak migrasi sebelumnya, otomatis bisa dipakai dari server manapun.
 
 ---

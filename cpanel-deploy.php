@@ -151,23 +151,21 @@ if (is_dir($repoDir)) {
 }
 
 // ── 3. Cache rebuild ────────────────────────────────────────────────
+// Kode (config.php + src/) dimuat dari repo (public_html) — ikut
+// ter-deploy di langkah 2. Secrets (.env) tetap dibaca config.php dari
+// sibling ~/private/.env.
 try {
-    $privatePath = $homeDir . '/private';
-    if (!is_dir($privatePath)) {
-        $privatePath = $publicHtml . '/private';
-    }
-
     $configLoaded = false;
-    if (is_file($privatePath . '/config/config.php')) {
-        require_once $privatePath . '/config/config.php';
-        if (is_file($privatePath . '/src/SupabaseWriter.php')) {
-            require_once $privatePath . '/src/SupabaseWriter.php';
+    if (is_file($publicHtml . '/config/config.php')) {
+        require_once $publicHtml . '/config/config.php';
+        if (is_file($publicHtml . '/src/SupabaseWriter.php')) {
+            require_once $publicHtml . '/src/SupabaseWriter.php';
         }
-        if (is_file($privatePath . '/src/Cache.php')) {
-            require_once $privatePath . '/src/Cache.php';
+        if (is_file($publicHtml . '/src/Cache.php')) {
+            require_once $publicHtml . '/src/Cache.php';
         }
-        if (is_file($privatePath . '/src/CacheBuilder.php')) {
-            require_once $privatePath . '/src/CacheBuilder.php';
+        if (is_file($publicHtml . '/src/CacheBuilder.php')) {
+            require_once $publicHtml . '/src/CacheBuilder.php';
         }
         $configLoaded = true;
     } elseif (is_file($publicHtml . '/bootstrap.php')) {

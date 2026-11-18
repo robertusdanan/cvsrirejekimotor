@@ -141,9 +141,9 @@ final class Auth
     {
         if (!self::isSuperAdmin()) {
             http_response_code(403);
-            require __DIR__ . '/../../admin/templates/admin_header.php';
+            require __DIR__ . '/../admin/templates/admin_header.php';
             echo '<h1>Akses Ditolak</h1><p class="admin-meta">Halaman ini hanya bisa diakses oleh Super Admin.</p>';
-            require __DIR__ . '/../../admin/templates/admin_footer.php';
+            require __DIR__ . '/../admin/templates/admin_footer.php';
             exit;
         }
     }
