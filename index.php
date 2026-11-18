@@ -84,6 +84,24 @@ try {
         require __DIR__ . '/pages/tentang.php';
     } elseif ($segments[0] === 'kontak' && count($segments) === 1) {
         require __DIR__ . '/pages/kontak.php';
+    } elseif ($path === 'sitemap.xml') {
+        header('Content-Type: application/xml; charset=UTF-8');
+        $index = cache()->read('products/index.json')['items'] ?? [];
+        $base = 'https://cvsrirejekimotor.com';
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        foreach (['' => '1.0', 'produk' => '0.9', 'tentang-kami' => '0.5', 'kontak' => '0.5'] as $p => $pr) {
+            echo '<url><loc>' . $base . '/' . $p . '</loc><priority>' . $pr . '</priority></url>' . "\n";
+        }
+        foreach ($index as $p) {
+            $loc = $base . '/produk/' . htmlspecialchars($p['slug'] ?? '', ENT_XML1, 'UTF-8');
+            $mod = htmlspecialchars(substr((string) ($p['updated_at'] ?? ''), 0, 10), ENT_XML1, 'UTF-8');
+            echo '<url><loc>' . $loc . '</loc>';
+            if ($mod !== '') { echo '<lastmod>' . $mod . '</lastmod>'; }
+            echo '<priority>0.8</priority></url>' . "\n";
+        }
+        echo '</urlset>';
+        exit;
     } elseif ($segments[0] === 'admin') {
         $adminSubPath = implode('/', array_slice($segments, 1));
         $targetFile = __DIR__ . '/admin/' . ($adminSubPath === '' ? 'index.php' : $adminSubPath);

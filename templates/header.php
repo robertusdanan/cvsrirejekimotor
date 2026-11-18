@@ -1,7 +1,10 @@
 <?php
-// Hitung kunjungan hari ini (anonim, dedup per IP). Tidak pernah menggagalkan halaman.
+// Hitung kunjungan hari ini (anonim, dedup per IP). Dijalankan setelah respons
+// terkirim supaya tidak menahan TTFB. Tidak pernah menggagalkan halaman.
 if (function_exists('statistikKunjungan')) {
-    statistikKunjungan()->catat();
+    register_shutdown_function(function () {
+        try { statistikKunjungan()->catat(); } catch (Throwable $e) {}
+    });
 }
 $company = cache()->read('company/profile.json') ?? [];
 $pageTitle = $pageTitle ?? ($company['company_name'] ?? 'CV Sri Rejeki Motor');
@@ -30,8 +33,28 @@ $currentUri = '/' . ltrim($currentUri, '/');
   } catch (e) {}
 })(document.documentElement);
 </script>
+<?php
+  $pageDescription = $pageDescription ?? ($company['description'] ?? 'Toko Onderdil Mobil terpercaya - CV Sri Rejeki Motor');
+  $pageCanonical = $pageCanonical ?? ('https://cvsrirejekimotor.com' . strtok($_SERVER['REQUEST_URI'] ?? '/', '?'));
+  $pageRobots = $pageRobots ?? 'index,follow';
+  $pageOgImage = $pageOgImage ?? 'https://cvsrirejekimotor.com/assets/img/logo.webp';
+  $pageOgType = $pageOgType ?? 'website';
+?>
 <title><?= e($pageTitle) ?></title>
-<meta name="description" content="<?= e($company['description'] ?? 'Toko Onderdil Mobil terpercaya - CV Sri Rejeki Motor') ?>">
+<meta name="description" content="<?= e(mb_strimwidth((string) $pageDescription, 0, 160, '')) ?>">
+<link rel="canonical" href="<?= e($pageCanonical) ?>">
+<meta name="robots" content="<?= e($pageRobots) ?>">
+<meta property="og:title" content="<?= e($pageTitle) ?>">
+<meta property="og:description" content="<?= e(mb_strimwidth((string) $pageDescription, 0, 160, '')) ?>">
+<meta property="og:url" content="<?= e($pageCanonical) ?>">
+<meta property="og:type" content="<?= e($pageOgType) ?>">
+<meta property="og:image" content="<?= e($pageOgImage) ?>">
+<meta property="og:site_name" content="CV Sri Rejeki Motor">
+<meta property="og:locale" content="id_ID">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= e($pageTitle) ?>">
+<meta name="twitter:description" content="<?= e(mb_strimwidth((string) $pageDescription, 0, 160, '')) ?>">
+<meta name="twitter:image" content="<?= e($pageOgImage) ?>">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="shortcut icon" href="/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,6 +62,31 @@ $currentUri = '/' . ltrim($currentUri, '/');
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <?php $cssVersion = @filemtime(__DIR__ . '/../assets/css/style.css') ?: time(); ?>
 <link rel="stylesheet" href="/assets/css/style.css?v=<?= (int) $cssVersion ?>">
+<script type="application/ld+json">
+<?= json_encode([
+  '@context' => 'https://schema.org',
+  '@graph' => [
+    [
+      '@type' => 'Organization',
+      'name' => 'CV Sri Rejeki Motor',
+      'url' => 'https://cvsrirejekimotor.com/',
+      'logo' => 'https://cvsrirejekimotor.com/assets/img/logo.webp',
+      'description' => $company['description'] ?? 'Toko Onderdil Mobil terpercaya',
+    ],
+    [
+      '@type' => 'WebSite',
+      'name' => 'CV Sri Rejeki Motor',
+      'url' => 'https://cvsrirejekimotor.com/',
+      'inLanguage' => 'id',
+      'potentialAction' => [
+        '@type' => 'SearchAction',
+        'target' => ['@type' => 'EntryPoint', 'urlTemplate' => 'https://cvsrirejekimotor.com/produk?q={search_term_string}'],
+        'query-input' => 'required name=search_term_string',
+      ],
+    ],
+  ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+</script>
 </head>
 <body class="<?= e(trim($bodyClass)) ?>">
 

@@ -13,11 +13,12 @@ if (str_starts_with($cleanWa, '0')) {
     $cleanWa = '62' . substr($cleanWa, 1);
 }
 
-$pageTitle = $product['nama_produk'] . ' | CV Sri Rejeki Motor';
+$pageTitle = $product['nama_produk']
+    . (!empty($product['merk']) ? ' ' . $product['merk'] : '')
+    . ' | Jual Suku Cadang Mobil | CV Sri Rejeki Motor';
 $priceFinal = $product['harga_final'] ?? $product['harga_jual'] ?? 0;
 $priceOriginal = $product['harga_jual'] ?? 0;
 $hasDiscount = !empty($product['harga_final']) && $product['harga_final'] < $priceOriginal;
-$stok = (int) ($product['stok'] ?? 0);
 
 // Pre-compose WhatsApp inquiry message
 $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'srirejekimotor.com') . '/produk/' . $product['slug'];
@@ -25,10 +26,28 @@ $waText = "Halo CV Sri Rejeki Motor, saya tertarik dengan suku cadang:\n"
         . "*{$product['nama_produk']}*\n"
         . (!empty($product['kode_barang']) ? "Kode Part (PN): {$product['kode_barang']}\n" : '')
         . (!empty($product['merk']) ? "Merek: {$product['merk']}\n" : '')
-        . "Harga: " . rupiah($priceFinal) . "\n\n"
-        . "Apakah barang ini masih tersedia dan cocok untuk kendaraan saya?\n"
+        . ($priceFinal > 0 ? "Harga: " . rupiah($priceFinal) . "\n\n" : '')
+        . ($priceFinal > 0 ? "Apakah barang ini masih tersedia dan cocok untuk kendaraan saya?\n" : "Berapa harga barang ini? Apakah masih tersedia dan cocok untuk kendaraan saya?\n")
         . "Link: {$currentUrl}";
 $waUrl = "https://wa.me/{$cleanWa}?text=" . urlencode($waText);
+
+// SEO: deskripsi + canonical + Open Graph unik per produk
+$descParts = [];
+if (!empty($product['merk'])) { $descParts[] = $product['merk']; }
+if (!empty($product['category'])) { $descParts[] = $product['category']; }
+$descBase = 'Jual ' . $product['nama_produk']
+    . ($descParts ? ' ' . implode(' ', $descParts) : '')
+    . ' — Part Number ' . ($product['kode_barang'] ?? '')
+    . ($priceFinal > 0 ? '. Harga ' . rupiah($priceFinal) : '. Harga tanyakan via WhatsApp')
+    . '. Onderdil mobil original/OEM, kirim ke seluruh Indonesia.';
+$pageDescription = !empty($product['description'])
+    ? mb_strimwidth(trim(strip_tags($product['description'])), 0, 160, '')
+    : $descBase;
+$pageCanonical = 'https://cvsrirejekimotor.com/produk/' . $product['slug'];
+$pageOgType = 'product';
+if (!empty($product['images'][0]['path'])) {
+    $pageOgImage = mediaUrl($product['images'][0]['path']);
+}
 
 require __DIR__ . '/../templates/header.php';
 ?>
@@ -46,7 +65,7 @@ require __DIR__ . '/../templates/header.php';
   <div class="product-gallery reveal">
     <?php if (!empty($product['images'])): ?>
       <div class="gallery-main">
-        <img id="mainImage" src="<?= e(mediaUrl($product['images'][0]['path'])) ?>" alt="<?= e($product['nama_produk']) ?>">
+        <img id="mainImage" src="<?= e(mediaUrl($product['images'][0]['path'])) ?>" alt="<?= e($product['nama_produk']) ?>" fetchpriority="high">
       </div>
       <?php if (count($product['images']) > 1): ?>
       <div class="product-gallery-thumbs">
@@ -105,19 +124,19 @@ require __DIR__ . '/../templates/header.php';
     <?php endif; ?>
 
     <div class="price-box">
-      <div class="price-large"><?= rupiah($priceFinal) ?></div>
-      <?php if ($hasDiscount): ?>
-        <div class="price-original-large"><?= rupiah($priceOriginal) ?></div>
-        <span class="discount-pill">Hemat <?= rupiah($priceOriginal - $priceFinal) ?></span>
+      <?php if ($priceFinal > 0): ?>
+        <div class="price-large"><?= rupiah($priceFinal) ?></div>
+        <?php if ($hasDiscount): ?>
+          <div class="price-original-large"><?= rupiah($priceOriginal) ?></div>
+          <span class="discount-pill">Hemat <?= rupiah($priceOriginal - $priceFinal) ?></span>
+        <?php endif; ?>
+      <?php else: ?>
+        <div class="price-large">Tanya Harga</div>
       <?php endif; ?>
     </div>
 
     <div class="stock-status-wrap">
-      <?php if ($stok > 0): ?>
-        <span class="stock-badge stock-in"><span class="badge-dot"></span> Stok Tersedia (<?= $stok ?> unit)</span>
-      <?php else: ?>
-        <span class="stock-badge stock-contact"><span class="badge-dot"></span> Konfirmasi Ketersediaan via WhatsApp</span>
-      <?php endif; ?>
+      <span class="stock-badge stock-contact"><span class="badge-dot"></span> Konfirmasi Ketersediaan via WhatsApp</span>
     </div>
 
     <!-- Spesifikasi Ringkas -->
@@ -180,6 +199,37 @@ require __DIR__ . '/../templates/header.php';
     </div>
   </div>
 </section>
+
+<script type="application/ld+json">
+<?= json_encode(array_filter([
+  '@context' => 'https://schema.org',
+  '@type' => 'Product',
+  'name' => $product['nama_produk'],
+  'image' => !empty($product['images'][0]['path']) ? mediaUrl($product['images'][0]['path']) : null,
+  'description' => $pageDescription,
+  'sku' => $product['kode_barang'] ?? null,
+  'brand' => !empty($product['merk']) ? ['@type' => 'Brand', 'name' => $product['merk']] : null,
+  'category' => $product['category'] ?? null,
+  'offers' => $priceFinal > 0 ? [
+    '@type' => 'Offer',
+    'url' => $pageCanonical,
+    'priceCurrency' => 'IDR',
+    'price' => $priceFinal,
+    'itemCondition' => 'https://schema.org/NewCondition',
+  ] : null,
+]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+</script>
+<script type="application/ld+json">
+<?= json_encode([
+  '@context' => 'https://schema.org',
+  '@type' => 'BreadcrumbList',
+  'itemListElement' => [
+    ['@type' => 'ListItem', 'position' => 1, 'name' => 'Beranda', 'item' => 'https://cvsrirejekimotor.com/'],
+    ['@type' => 'ListItem', 'position' => 2, 'name' => 'Katalog Produk', 'item' => 'https://cvsrirejekimotor.com/produk'],
+    ['@type' => 'ListItem', 'position' => 3, 'name' => $product['nama_produk'], 'item' => $pageCanonical],
+  ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+</script>
 
 <?php
 require __DIR__ . '/../templates/footer.php';

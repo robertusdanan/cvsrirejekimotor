@@ -1417,3 +1417,15 @@ h1, h2 {
   .hero-scroll-cue, .hero-scroll-dot { animation: none; }
   html { scroll-behavior: auto; }
 }
+/* Pagination katalog (SEO: 24 produk/halaman) */
+.pagination { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin: 32px 0 8px; }
+.pagination .page-link { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; padding: 0 12px; border: 1px solid var(--hairline-strong); border-radius: 10px; background: #fff; color: var(--ink); font-weight: 600; font-size: 0.9rem; text-decoration: none; }
+.pagination .page-link:hover { border-color: var(--gold); color: var(--gold-deep); }
+.pagination .page-link.is-current { background: var(--navy); border-color: var(--navy); color: #fff; }
+.pagination .page-ellipsis { color: var(--steel); padding: 0 2px; }
+/* Tombol aksi di kartu produk: Detail + WhatsApp berdampingan */
+a.product-card-image { display: block; }
+.product-card-body h3 a { color: inherit; text-decoration: none; }
+.product-card-body h3 a:hover { color: var(--gold-deep); }
+.product-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.product-card-actions .btn-card { flex: 1; min-height: 42px; padding: 10px 8px; font-size: 0.85rem; }

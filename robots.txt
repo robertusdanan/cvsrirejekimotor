@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /webhook/
+Disallow: /cpanel-deploy.php
+Disallow: /cpanel-setup-key.php
+
+Sitemap: https://cvsrirejekimotor.com/sitemap.xml

@@ -236,3 +236,12 @@ if (!function_exists('assetUrl')) {
         return '/' . $cleanPath;
     }
 }
+if (!function_exists('slugify')) {
+    function slugify(string $text): string
+    {
+        $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text;
+        $text = strtolower($text);
+        $text = preg_replace('/[^a-z0-9]+/', '-', $text) ?? '';
+        return trim($text, '-');
+    }
+}

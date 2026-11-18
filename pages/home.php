@@ -9,8 +9,8 @@ $bodyClass = 'has-hero';
 
 $heroSlides = heroActiveSlides();
 $heroSettings = heroManifest()['settings'];
-$heroKicker = trim((string) ($heroSettings['kicker'] ?? '')) ?: 'Toko Onderdil Mobil ¡¤ Terpercaya & Lengkap';
-$heroHeading = trim((string) ($heroSettings['heading_override'] ?? '')) ?: ($company['company_name'] ?? 'CV Sri Rejeki Motor');
+$heroKicker = trim((string) ($heroSettings['kicker'] ?? '')) ?: ($company['company_name'] ?? 'CV Sri Rejeki Motor');
+$heroHeading = trim((string) ($heroSettings['heading_override'] ?? '')) ?: 'Toko Onderdil & Suku Cadang Mobil Terpercaya';
 $heroTagline = trim((string) ($company['tagline'] ?? '')) ?: 'Pusat Suku Cadang & Onderdil Mobil Berkualitas untuk Berbagai Merk Kendaraan';
 $heroInterval = max(3000, (int) ($heroSettings['interval_ms'] ?? 6000));
 $heroOverlayOpacity = max(0, min(1, (float) ($heroSettings['overlay_opacity'] ?? 0.65)));
@@ -141,9 +141,16 @@ require __DIR__ . '/../templates/header.php';
         $priceFinal = $p['harga_final'] ?? $p['harga_jual'] ?? 0;
         $priceOriginal = $p['harga_jual'] ?? 0;
         $hasDiscount = !empty($p['harga_final']) && $p['harga_final'] < $priceOriginal;
+        $cardWaText = "Halo CV Sri Rejeki Motor, saya tertarik dengan suku cadang:\n"
+            . '*' . $p['nama_produk'] . "*\n"
+            . (!empty($p['kode_barang']) ? 'Kode Part (PN): ' . $p['kode_barang'] . "\n" : '')
+            . ($priceFinal > 0 ? '' : "Berapa harga barang ini?\n")
+            . "Apakah barang ini masih tersedia?\n"
+            . 'Link: https://cvsrirejekimotor.com/produk/' . $p['slug'];
+        $cardWaUrl = $cleanWa !== '' ? 'https://wa.me/' . $cleanWa . '?text=' . urlencode($cardWaText) : '';
       ?>
-      <a class="product-card reveal" style="--reveal-delay: <?= min($i, 7) * 0.05 ?>s" href="/produk/<?= e($p['slug']) ?>">
-        <div class="product-card-image">
+      <article class="product-card reveal" style="--reveal-delay: <?= min($i, 7) * 0.05 ?>s">
+        <a class="product-card-image" href="/produk/<?= e($p['slug']) ?>" aria-label="<?= e($p['nama_produk']) ?>">
           <?php if (!empty($p['images'][0]['path'])): ?>
             <img src="<?= e(mediaUrl($p['images'][0]['path'])) ?>" alt="<?= e($p['nama_produk']) ?>" loading="lazy">
           <?php elseif (!empty($p['primary_image'])): ?>
@@ -160,22 +167,32 @@ require __DIR__ . '/../templates/header.php';
           <?php elseif (!empty($p['featured'])): ?>
             <span class="card-badge card-badge-featured">UNGGULAN</span>
           <?php endif; ?>
-        </div>
+        </a>
         <div class="product-card-body">
           <p class="part-code"><?= !empty($p['kode_barang']) ? 'PN. ' . e($p['kode_barang']) : '&nbsp;' ?></p>
-          <h3><?= e($p['nama_produk']) ?></h3>
+          <h3><a href="/produk/<?= e($p['slug']) ?>"><?= e($p['nama_produk']) ?></a></h3>
           <p class="meta">
             <?php if (!empty($p['merk'])): ?><span class="meta-brand"><?= e($p['merk']) ?></span><?php endif; ?>
             <?php if (!empty($p['nama_mobil'])): ?><span class="meta-car">¡¤ <?= e($p['nama_mobil']) ?></span><?php endif; ?>
           </p>
           <div class="price-wrap">
-            <span class="price"><?= rupiah($priceFinal) ?></span>
-            <?php if ($hasDiscount): ?>
-              <span class="price-original"><?= rupiah($priceOriginal) ?></span>
+            <?php if ($priceFinal > 0): ?>
+              <span class="price"><?= rupiah($priceFinal) ?></span>
+              <?php if ($hasDiscount): ?>
+                <span class="price-original"><?= rupiah($priceOriginal) ?></span>
+              <?php endif; ?>
+            <?php else: ?>
+              <span class="price">Tanya Harga</span>
+            <?php endif; ?>
+          </div>
+          <div class="product-card-actions">
+            <a class="btn btn-outline btn-card" href="/produk/<?= e($p['slug']) ?>">Detail Barang</a>
+            <?php if ($cardWaUrl !== ''): ?>
+              <a class="btn btn-primary btn-card" href="<?= e($cardWaUrl) ?>" target="_blank" rel="noopener noreferrer">Chat WhatsApp</a>
             <?php endif; ?>
           </div>
         </div>
-      </a>
+      </article>
     <?php endforeach; ?>
   </div>
 </section>
