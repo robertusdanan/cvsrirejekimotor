@@ -165,9 +165,7 @@ final class CacheBuilder
         $featured = array_values(array_filter($allPublic, fn ($p) => $p['featured']));
         $this->cache->write('homepage/featured.json', ['items' => array_slice($featured, 0, 12)]);
 
-        $this->cache->write('brands/index.json', ['items' => array_values(array_unique(array_filter(array_column($index, 'merk'))))]);
-        $this->cache->write('vehicles/index.json', ['items' => array_values(array_unique(array_filter(array_column($index, 'nama_mobil'))))]);
-        $this->cache->write('categories/index.json', ['items' => array_values(array_unique(array_filter(array_column($index, 'category'))))]);
+        $this->writeTaxonomyIndexes($index);
 
         // Remove orphan product files
         $dir = rtrim((string) config('CACHE_PATH'), '/') . '/products';
@@ -188,6 +186,149 @@ final class CacheBuilder
         $this->cache->bumpVersion('homepage');
 
         return $allPublic;
+    }
+
+    /**
+     * Index taksonomi untuk dropdown filter /produk (brands, vehicles,
+     * categories). Satu baris = SATU nilai, lengkap dengan jumlah produknya,
+     * supaya pengunjung tidak bingung:
+     * - vehicles: nama_mobil berisi daftar dipisah koma ("Livina, Xpander,
+     *   Raize") -> dipecah per kendaraan, jadi tiap kendaraan jadi satu
+     *   opsi yang mencakup SEMUA produknya (bukan 1 produk).
+     * - brands/categories: satu nilai per produk, dihitung kemunculannya.
+     *
+     * Sumber nilai = data produk (otomatis mendeteksi apa yang ada di produk);
+     * tabel registry Supabase (brands/vehicles/categories) dipakai untuk nama
+     * resmi + singkatan + urutan, bila tabelnya sudah ada. Bila tabel belum
+     * ada (belum dijalankan di SQL Editor), fallback ke nilai produk apa
+     * adanya — filter tetap jalan, hanya tanpa nama resmi/singkatan.
+     * Nilai produk yang belum ada di tabel disisipkan (best-effort) supaya
+     * registry selalu lengkap — KECUALI categories: registry kategori
+     * dikurasi (taksonomi baru), jangan sampai kategori sampah Accurate
+     * (mis. "GENUINE PARTS", "SANYCO") tersisip otomatis.
+     */
+    private function writeTaxonomyIndexes(array $index): void
+    {
+        // --- Merek: satu nilai per produk ---
+        $brandCounts = [];
+        foreach ($index as $p) {
+            $m = trim((string) ($p['merk'] ?? ''));
+            if ($m !== '') {
+                $brandCounts[$m] = ($brandCounts[$m] ?? 0) + 1;
+            }
+        }
+        $brandRows = $this->readTaxonomyTable('brands', 'name,short_name,sort_order');
+        $this->cache->write('brands/index.json', ['items' => $this->taxonomyItems($brandCounts, $brandRows)]);
+        $this->syncTaxonomyTable('brands', $brandCounts, $brandRows);
+
+        // --- Kendaraan: pecah daftar koma per kendaraan ---
+        $vehCounts = [];
+        foreach ($index as $p) {
+            foreach (explode(',', (string) ($p['nama_mobil'] ?? '')) as $v) {
+                $v = trim($v);
+                if ($v !== '') {
+                    $vehCounts[$v] = ($vehCounts[$v] ?? 0) + 1;
+                }
+            }
+        }
+        $vehRows = $this->readTaxonomyTable('vehicles', 'name,brand,sort_order');
+        $this->cache->write('vehicles/index.json', ['items' => $this->taxonomyItems($vehCounts, $vehRows)]);
+        $this->syncTaxonomyTable('vehicles', $vehCounts, $vehRows);
+
+        // --- Kategori: satu nilai per produk (tanpa auto-sisip) ---
+        $catCounts = [];
+        foreach ($index as $p) {
+            $c = trim((string) ($p['category'] ?? ''));
+            if ($c !== '') {
+                $catCounts[$c] = ($catCounts[$c] ?? 0) + 1;
+            }
+        }
+        $catRows = $this->readTaxonomyTable('categories', 'name,sort_order');
+        $this->cache->write('categories/index.json', ['items' => $this->taxonomyItems($catCounts, $catRows)]);
+    }
+
+    /** Baca tabel registry; gagal (tabel belum ada) = array kosong (fallback). */
+    private function readTaxonomyTable(string $table, string $cols): array
+    {
+        try {
+            $res = $this->writer->request(
+                'GET',
+                '/rest/v1/' . $table . '?select=' . $cols . '&order=sort_order.asc,name.asc&limit=1000'
+            );
+        } catch (Throwable $e) {
+            error_log('taxonomy read ' . $table . ' gagal: ' . $e->getMessage());
+            return [];
+        }
+        if (!is_array($res) || isset($res['message']) || isset($res['error']) || !array_is_list($res)) {
+            return [];
+        }
+        return $res;
+    }
+
+    /** Gabungkan hitungan produk dengan baris registry (nama resmi + urutan). */
+    private function taxonomyItems(array $counts, array $rows): array
+    {
+        $byName = [];
+        foreach ($rows as $r) {
+            $byName[strtolower(trim((string) ($r['name'] ?? '')))] = $r;
+        }
+        $items = [];
+        foreach ($counts as $value => $count) {
+            $row = $byName[strtolower((string) $value)] ?? null;
+            // (string): kunci array PHP mengubah string numerik ("555") jadi
+            // int — paksa kembali ke string supaya JSON + filter konsisten.
+            $items[] = [
+                'value' => (string) $value,
+                'name' => ($row['name'] ?? '') !== '' ? (string) $row['name'] : (string) $value,
+                'short_name' => $row['short_name'] ?? null,
+                'sort_order' => isset($row['sort_order']) ? (int) $row['sort_order'] : null,
+                'count' => $count,
+            ];
+        }
+        usort($items, function ($a, $b) {
+            $sa = $a['sort_order'];
+            $sb = $b['sort_order'];
+            if ($sa !== null && $sb !== null && $sa !== $sb) {
+                return $sa <=> $sb;
+            }
+            if ($sa !== null) {
+                return -1;
+            }
+            if ($sb !== null) {
+                return 1;
+            }
+            return strcasecmp((string) $a['name'], (string) $b['name']);
+        });
+        return $items;
+    }
+
+    /** Sisipkan nilai produk yang belum ada di registry (auto-detect). Gagal = diam. */
+    private function syncTaxonomyTable(string $table, array $counts, array $rows): void
+    {
+        try {
+            $known = [];
+            foreach ($rows as $r) {
+                $known[strtolower(trim((string) ($r['name'] ?? '')))] = true;
+            }
+            $missing = [];
+            foreach (array_keys($counts) as $value) {
+                if (!isset($known[strtolower((string) $value)])) {
+                    // sort_order besar supaya nilai baru muncul di akhir, bukan di atas.
+                    $missing[] = ['name' => $value, 'sort_order' => 9999];
+                }
+            }
+            if ($missing === []) {
+                return;
+            }
+            $this->writer->request(
+                'POST',
+                '/rest/v1/' . $table . '?on_conflict=name',
+                $missing,
+                ['Prefer: return=minimal,resolution=merge-duplicates']
+            );
+        } catch (Throwable $e) {
+            error_log('taxonomy sync ' . $table . ' gagal: ' . $e->getMessage());
+        }
     }
 
     public function rebuildCompany(): void

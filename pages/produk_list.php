@@ -40,8 +40,14 @@ $filtered = array_filter($index, function ($p) use ($q, $brand, $vehicle, $categ
     if ($brand !== '' && ($p['merk'] ?? '') !== $brand) {
         return false;
     }
-    if ($vehicle !== '' && ($p['nama_mobil'] ?? '') !== $vehicle) {
-        return false;
+    if ($vehicle !== '') {
+        // nama_mobil berisi daftar kendaraan dipisah koma — cocok bila
+        // kendaraan yang dipilih adalah SALAH SATU dari daftar itu (bukan
+        // harus sama persis dengan seluruh string).
+        $vehList = array_map('trim', explode(',', (string) ($p['nama_mobil'] ?? '')));
+        if (!in_array($vehicle, $vehList, true)) {
+            return false;
+        }
     }
     if ($category !== '' && ($p['category'] ?? '') !== $category) {
         return false;
@@ -65,6 +71,27 @@ $perPage = 24;
 $totalPages = max(1, (int) ceil($totalFiltered / $perPage));
 $page = max(1, min($totalPages, (int) ($_GET['page'] ?? 1)));
 $filtered = array_slice(array_values($filtered), ($page - 1) * $perPage, $perPage);
+
+// Label opsi dropdown taksonomi: nama resmi (+ singkatan bila belum ada di
+// nama) + jumlah produk. Item cache baru berbentuk objek {value, name,
+// short_name, count}; cache lama (string polos) tetap didukung.
+if (!function_exists('taxonomyLabel')) {
+    function taxonomyLabel($item): string
+    {
+        if (is_string($item)) {
+            return $item;
+        }
+        $label = (string) ($item['name'] ?? $item['value'] ?? '');
+        $short = $item['short_name'] ?? null;
+        if ($short !== null && $short !== '' && stripos($label, (string) $short) === false) {
+            $label .= ' (' . $short . ')';
+        }
+        if (isset($item['count'])) {
+            $label .= ' (' . (int) $item['count'] . ')';
+        }
+        return $label;
+    }
+}
 
 require __DIR__ . '/../templates/header.php';
 ?>
@@ -90,8 +117,8 @@ require __DIR__ . '/../templates/header.php';
         <?php if ($brands): ?>
         <select name="merk" aria-label="Filter Merek">
           <option value="">Semua Merek</option>
-          <?php foreach ($brands as $b): ?>
-            <option value="<?= e($b) ?>" <?= $brand === $b ? 'selected' : '' ?>><?= e($b) ?></option>
+          <?php foreach ($brands as $b): $bv = is_array($b) ? (string) ($b['value'] ?? '') : (string) $b; ?>
+            <option value="<?= e($bv) ?>" <?= $brand === $bv ? 'selected' : '' ?>><?= e(taxonomyLabel($b)) ?></option>
           <?php endforeach; ?>
         </select>
         <?php endif; ?>
@@ -99,8 +126,8 @@ require __DIR__ . '/../templates/header.php';
         <?php if ($vehicles): ?>
         <select name="kendaraan" aria-label="Filter Kendaraan">
           <option value="">Semua Kendaraan</option>
-          <?php foreach ($vehicles as $v): ?>
-            <option value="<?= e($v) ?>" <?= $vehicle === $v ? 'selected' : '' ?>><?= e($v) ?></option>
+          <?php foreach ($vehicles as $v): $vv = is_array($v) ? (string) ($v['value'] ?? '') : (string) $v; ?>
+            <option value="<?= e($vv) ?>" <?= $vehicle === $vv ? 'selected' : '' ?>><?= e(taxonomyLabel($v)) ?></option>
           <?php endforeach; ?>
         </select>
         <?php endif; ?>
@@ -108,8 +135,8 @@ require __DIR__ . '/../templates/header.php';
         <?php if ($categories): ?>
         <select name="kategori" aria-label="Filter Kategori">
           <option value="">Semua Kategori</option>
-          <?php foreach ($categories as $c): ?>
-            <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e($c) ?></option>
+          <?php foreach ($categories as $c): $cv = is_array($c) ? (string) ($c['value'] ?? '') : (string) $c; ?>
+            <option value="<?= e($cv) ?>" <?= $category === $cv ? 'selected' : '' ?>><?= e(taxonomyLabel($c)) ?></option>
           <?php endforeach; ?>
         </select>
         <?php endif; ?>

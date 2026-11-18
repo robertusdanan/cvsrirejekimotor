@@ -199,4 +199,4 @@ SELECT count(*) AS grup_induk FROM categories WHERE parent_id IS NULL;
 SELECT count(*) AS kategori_daun FROM categories WHERE parent_id IS NOT NULL;
 SELECT p.name AS grup, count(c.id) AS jumlah_daun
 FROM categories p LEFT JOIN categories c ON c.parent_id = p.id
-WHERE p.parent_id IS NULL GROUP BY p.name ORDER BY p.sort_order;
+WHERE p.parent_id IS NULL GROUP BY p.id, p.name, p.sort_order ORDER BY p.sort_order;
