@@ -26,6 +26,22 @@ if (!function_exists('slugify')) {
     }
 }
 
+// array_is_list() baru ada di PHP 8.1; webhook deploy jalan di PHP 7.4.
+// Definisi di SINI (bukan hanya di config.php) karena file ini dimuat
+// langsung oleh cpanel-deploy.php langkah 3 — terbukti di deploy e560303
+// & f27a84a: polyfill di config.php tidak berlaku saat rebuild, rebuild
+// fatal ("Call to undefined function array_is_list()") begitu ada tabel
+// registry yang berisi baris, dan cache tidak pernah ter-rebuild.
+if (!function_exists('array_is_list')) {
+    function array_is_list(array $arr): bool
+    {
+        if ($arr === []) {
+            return true;
+        }
+        return array_keys($arr) === range(0, count($arr) - 1);
+    }
+}
+
 final class CacheBuilder
 {
     public $writer;

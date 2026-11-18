@@ -27,9 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 // Delete product from Supabase
                 $sw->deleteProduct($product['id']);
             }
-            // Rebuild public cache
-            cacheBuilder()->rebuildProducts();
-            header('Location: /admin/products.php?deleted=1');
+            // Rebuild cache publik (aman). Bila gagal, beri tahu lewat
+            // redirect supaya daftar produk menampilkan warning.
+            $cacheOk = safeRebuildAllProducts();
+            header('Location: /admin/products.php?deleted=1' . ($cacheOk ? '' : '&cache=stale'));
             exit;
         }
     }
@@ -64,6 +65,12 @@ require __DIR__ . '/templates/admin_header.php';
 <?php if (isset($_GET['deleted'])): ?>
     <div class="mb-6 rounded-lg bg-emerald-50 p-4 border border-emerald-200 text-emerald-800 text-sm">
         Produk berhasil dihapus dari Supabase dan Cloudflare R2!
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['cache']) && $_GET['cache'] === 'stale'): ?>
+    <div class="mb-6 rounded-lg bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm">
+        Data sudah tersimpan/dihapus, tetapi cache situs belum diperbarui (rebuild gagal). Gunakan "Refresh Semua Cache" di Dashboard.
     </div>
 <?php endif; ?>
 

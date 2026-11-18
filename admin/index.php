@@ -25,6 +25,26 @@ require __DIR__ . '/templates/admin_header.php';
     <p class="text-sm text-slate-500">Ringkasan statistik katalog produk dan inventaris toko CV Sri Rejeki Motor.</p>
 </div>
 
+<?php if (isset($_GET['cache']) && $_GET['cache'] === 'ok'): ?>
+    <div class="mb-6 rounded-lg bg-emerald-50 p-4 border border-emerald-200 text-emerald-800 text-sm">
+        Cache berhasil diperbarui — situs publik kini menampilkan data terbaru.
+    </div>
+<?php elseif (isset($_GET['cache']) && $_GET['cache'] === 'fail'): ?>
+    <div class="mb-6 rounded-lg bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm">
+        Refresh cache gagal. Cek error_log atau coba lagi beberapa saat lagi.
+    </div>
+<?php endif; ?>
+
+<div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 mb-8">
+    <h2 class="text-lg font-bold text-slate-800 mb-2">Cache Situs Publik</h2>
+    <p class="text-sm text-slate-500 mb-4">Perubahan data/gambar di admin seharusnya memperbarui cache otomatis. Bila situs masih menampilkan data lama, tekan tombol ini untuk membangun ulang seluruh cache dari Supabase.</p>
+    <form method="POST" action="/admin/cache_refresh.php">
+        <input type="hidden" name="csrf" value="<?= Auth::csrfToken() ?>">
+        <input type="hidden" name="resource" value="all">
+        <button type="submit" class="rounded-lg bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 transition">Refresh Semua Cache</button>
+    </form>
+</div>
+
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 admin-stat-card">
         <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 admin-stat-label">Total Produk</div>

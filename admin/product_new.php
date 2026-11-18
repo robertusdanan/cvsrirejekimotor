@@ -73,9 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $sw->syncProductImages($productId, $images);
                     }
 
-                    // Rebuild public cache immediately
-                    cacheBuilder()->rebuildProducts();
-                    header('Location: /admin/products.php?success=1');
+                    // Rebuild cache publik (aman). Bila gagal, beri tahu lewat
+                    // redirect supaya daftar produk menampilkan warning.
+                    $cacheOk = safeRebuildAllProducts();
+                    header('Location: /admin/products.php?success=1' . ($cacheOk ? '' : '&cache=stale'));
                     exit;
                 }
             }

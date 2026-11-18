@@ -61,27 +61,45 @@ if (!function_exists('cacheBuilder')) {
 }
 
 if (!function_exists('safeRebuildProduct')) {
-    function safeRebuildProduct(int $configId): void
+    // Rebuild cache produk TANPA menggagalkan halaman admin bila rebuild
+    // gagal (mis. Supabase lambat / timeout). Mengembalikan true bila cache
+    // berhasil diperbarui, false bila gagal — pemanggil WAJIB menampilkan
+    // $GLOBALS['cacheRebuildWarning'] ke admin supaya kegagalan terlihat,
+    // bukan diam-diam (dulu: rebuild gagal = cache situs tetap lama tanpa
+    // ada yang tahu).
+    function safeRebuildProduct(int $configId): bool
     {
         try {
+            // Rebuild 1000 produk + tulis ~1000 file: beri waktu lebih dari
+            // batas default web (30 dtk) supaya tidak mati di tengah jalan.
+            @set_time_limit(120);
+            @ignore_user_abort(true);
             cacheBuilder()->rebuildProducts();
+            unset($GLOBALS['cacheRebuildWarning']);
+            return true;
         } catch (Throwable $e) {
             error_log("Cache rebuild failed for product_config {$configId}: " . $e->getMessage());
-            $GLOBALS['cacheRebuildWarning'] = 'Data tersimpan, tetapi cache belum sepenuhnya diperbarui karena Supabase sedang tidak terjangkau. '
+            $GLOBALS['cacheRebuildWarning'] = 'Data tersimpan, tetapi cache belum diperbarui: ' . $e->getMessage() . ' '
                 . 'Coba "Refresh Semua Cache" di Dashboard beberapa saat lagi.';
+            return false;
         }
     }
 }
 
 if (!function_exists('safeRebuildAllProducts')) {
-    function safeRebuildAllProducts(): void
+    function safeRebuildAllProducts(): bool
     {
         try {
+            @set_time_limit(120);
+            @ignore_user_abort(true);
             cacheBuilder()->rebuildProducts();
+            unset($GLOBALS['cacheRebuildWarning']);
+            return true;
         } catch (Throwable $e) {
             error_log('Full product cache rebuild failed: ' . $e->getMessage());
-            $GLOBALS['cacheRebuildWarning'] = 'Data tersimpan ke Supabase, tetapi cache produk belum sepenuhnya diperbarui karena Supabase sedang tidak terjangkau. '
+            $GLOBALS['cacheRebuildWarning'] = 'Data tersimpan ke Supabase, tetapi cache produk belum diperbarui: ' . $e->getMessage() . ' '
                 . 'Coba "Refresh Semua Cache" di Dashboard beberapa saat lagi.';
+            return false;
         }
     }
 }

@@ -5,6 +5,7 @@ Auth::requireLogin();
 $sw = supabaseWriter();
 $flash = null;
 $error = null;
+$cacheWarning = null;
 
 $id = trim($_GET['id'] ?? $_POST['id'] ?? '');
 $product = $id !== '' ? $sw->getProductById($id) : null;
@@ -84,8 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $sw->syncProductImages($product['id'], $finalImages);
 
-            // Rebuild public cache
-            cacheBuilder()->rebuildProducts();
+            // Rebuild cache publik (aman: bila rebuild gagal, data tetap
+            // tersimpan dan warning ditampilkan — jangan pakai rebuildProducts()
+            // langsung di sini, dulu sekali gagal = halaman error + cache lama).
+            safeRebuildAllProducts();
+            $cacheWarning = $GLOBALS['cacheRebuildWarning'] ?? null;
             $flash = 'Perubahan produk berhasil disimpan!';
             $product = $sw->getProductById($product['id']);
         }
@@ -107,6 +111,12 @@ require __DIR__ . '/templates/admin_header.php';
 <?php if ($flash): ?>
     <div class="mb-6 rounded-lg bg-emerald-50 p-4 border border-emerald-200 text-emerald-800 text-sm font-medium">
         <?= htmlspecialchars($flash) ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($cacheWarning): ?>
+    <div class="mb-6 rounded-lg bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm">
+        <?= htmlspecialchars($cacheWarning) ?>
     </div>
 <?php endif; ?>
 
