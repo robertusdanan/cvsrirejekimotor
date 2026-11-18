@@ -27,7 +27,7 @@ INSERT INTO brands (name, short_name, sort_order) VALUES ('Daimaru', NULL, 11) O
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Denso', NULL, 12) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('DNY', NULL, 13) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Emgi', NULL, 14) ON CONFLICT (name) DO NOTHING;
-INSERT INTO brands (name, short_name, sort_order) VALUES ('F-16 Harsono', NULL, 15) ON CONFLICT (name) DO NOTHING;
+INSERT INTO brands (name, short_name, sort_order) VALUES ('F-16', NULL, 15) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Fuji', NULL, 16) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('GAP', NULL, 17) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('GP', NULL, 18) ON CONFLICT (name) DO NOTHING;
