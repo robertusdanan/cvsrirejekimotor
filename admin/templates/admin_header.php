@@ -37,7 +37,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
     </nav>
     <div class="admin-meta" style="padding:16px 24px;color:#9198A2;font-size:0.75rem;border-top:1px solid rgba(255,255,255,0.06);">
       <strong><?= e($_SESSION['admin_username'] ?? '') ?></strong><br>
-      <span style="color:#BFD9F5;"><?= Auth::isSuperAdmin() ? 'Super Admin' : 'Staff' ?></span>
+      <span style="color:#D8B877;"><?= Auth::isSuperAdmin() ? 'Super Admin' : 'Staff' ?></span>
     </div>
     <form method="post" action="/admin/logout.php" class="admin-logout">
       <button type="submit" class="btn-link">Keluar Sistem</button>
