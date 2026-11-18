@@ -8,6 +8,24 @@ declare(strict_types=1);
  *  - marketplaces
  *  - hero_slides
  */
+
+// slugify() juga didefinisikan di bootstrap.php (guarded di kedua tempat).
+// CacheBuilder dipakai LANGSUNG oleh cpanel-deploy.php (langkah 3),
+// webhook Supabase, dan scripts/*.php TANPA bootstrap.php — jadi definisi
+// di sini wajib ada. Tanpa ini rebuildAll() gagal dengan
+// "Call to undefined function slugify()" dan katalog tetap kosong.
+// Ditemukan 2026-11-18 dari log delivery webhook GitHub setelah restruktur
+// (deploy 84e25f01: cache_rebuild = error, padahal key Supabase live sehat).
+if (!function_exists('slugify')) {
+    function slugify(string $text): string
+    {
+        $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text;
+        $text = strtolower($text);
+        $text = preg_replace('/[^a-z0-9]+/', '-', $text) ?? '';
+        return trim($text, '-');
+    }
+}
+
 final class CacheBuilder
 {
     public $writer;
