@@ -20,6 +20,7 @@ $currentUri = '/' . ltrim($currentUri, '/');
 <html lang="id" class="no-js">
 <head>
 <meta charset="UTF-8">
+<meta name="google-site-verification" content="UHEQexE3xFs_GnTCOczzWILqDblb7rzKlw0Q8XYFXl0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
 (function (d) {
