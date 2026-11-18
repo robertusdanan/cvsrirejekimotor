@@ -91,6 +91,23 @@ if (str_starts_with($cleanWa, '0')) {
         <?php endif; ?>
       </div>
     </div>
+
+    <!-- Kolom 5: Statistik Pengunjung -->
+    <div class="footer-col">
+      <h4 class="footer-heading">Statistik</h4>
+      <?php $stats = function_exists('statistikKunjungan') ? statistikKunjungan()->baca() : ['hari_ini' => 0, 'total' => 0]; ?>
+      <div class="footer-stats-box">
+        <p class="stats-row">
+          <span class="stats-label">Pengunjung Hari Ini</span>
+          <span class="stats-value"><?= number_format((int) $stats['hari_ini'], 0, ',', '.') ?></span>
+        </p>
+        <p class="stats-row">
+          <span class="stats-label">Total Pengunjung</span>
+          <span class="stats-value"><?= number_format((int) $stats['total'], 0, ',', '.') ?></span>
+        </p>
+      </div>
+      <p class="footer-note-stats">Dihitung otomatis setiap kunjungan, tanpa perlu login.</p>
+    </div>
   </div>
 
   <div class="footer-bottom">

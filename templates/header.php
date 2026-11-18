@@ -1,4 +1,8 @@
 <?php
+// Hitung kunjungan hari ini (anonim, dedup per IP). Tidak pernah menggagalkan halaman.
+if (function_exists('statistikKunjungan')) {
+    statistikKunjungan()->catat();
+}
 $company = cache()->read('company/profile.json') ?? [];
 $pageTitle = $pageTitle ?? ($company['company_name'] ?? 'CV Sri Rejeki Motor');
 $brandName = $company['company_name'] ?? 'CV Sri Rejeki Motor';

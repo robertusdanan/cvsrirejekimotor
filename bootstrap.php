@@ -67,6 +67,8 @@ if (!function_exists('privatePath')) {
 require_once privatePath('config/config.php');
 require_once privatePath('src/Cache.php');
 require_once privatePath('src/R2WriteClient.php');
+require_once privatePath('src/SupabaseWriter.php');
+require_once privatePath('src/StatistikKunjungan.php');
 
 if (!function_exists('cache')) {
     function cache(): Cache
@@ -76,6 +78,17 @@ if (!function_exists('cache')) {
             $cache = new Cache();
         }
         return $cache;
+    }
+}
+
+if (!function_exists('statistikKunjungan')) {
+    function statistikKunjungan(): StatistikKunjungan
+    {
+        static $stats = null;
+        if ($stats === null) {
+            $stats = new StatistikKunjungan();
+        }
+        return $stats;
     }
 }
 

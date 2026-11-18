@@ -24,7 +24,7 @@ final class SupabaseWriter
     /**
      * Send HTTP request to Supabase REST API.
      */
-    public function request(string $method, string $endpoint, ?array $body = null, array $extraHeaders = []): array
+    public function request(string $method, string $endpoint, $body = null, array $extraHeaders = []): array
     {
         $url = $this->url . $endpoint;
         $headers = array_merge([
@@ -56,6 +56,20 @@ final class SupabaseWriter
 
         $decoded = json_decode($res, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Call a Postgres function via PostgREST /rpc. $params encodes as a JSON
+     * object ({} when empty), which is what PostgREST expects.
+     * Returns the first row, or null on any failure.
+     */
+    public function callRpc(string $function, array $params = []): ?array
+    {
+        $res = $this->request('POST', '/rest/v1/rpc/' . rawurlencode($function), (object) $params);
+        if (!is_array($res) || isset($res['message']) || isset($res['error']) || empty($res[0]) || !is_array($res[0])) {
+            return null;
+        }
+        return $res[0];
     }
 
     // =========================================================================
