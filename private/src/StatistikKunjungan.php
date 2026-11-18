@@ -28,7 +28,7 @@ final class StatistikKunjungan
 
     public function __construct(?SupabaseWriter $writer = null, ?Cache $cache = null)
     {
-        $this->writer = $writer ?? new SupabaseWriter();
+        $this->writer = $writer ?? (class_exists('SupabaseWriter') ? new SupabaseWriter() : null);
         $this->cache = $cache ?? cache();
     }
 
@@ -85,6 +85,9 @@ final class StatistikKunjungan
             }
             $today = $this->hariIni();
             $hash = $this->hashIp($ip);
+            if ($this->writer === null) {
+                return;
+            }
             // Dedup lokal dulu: bila hash IP ini sudah tercatat hari ini, jangan panggil Supabase.
             if (in_array($hash, $this->bacaIpHariIni($today), true)) {
                 return;
@@ -114,7 +117,7 @@ final class StatistikKunjungan
                     'total' => (int) ($cached['total'] ?? 0),
                 ];
             }
-            $row = $this->writer->callRpc('baca_statistik');
+            $row = $this->writer !== null ? $this->writer->callRpc('baca_statistik') : null;
             if ($row !== null) {
                 $data = [
                     'tanggal' => $this->hariIni(),

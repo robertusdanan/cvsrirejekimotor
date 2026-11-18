@@ -67,8 +67,24 @@ if (!function_exists('privatePath')) {
 require_once privatePath('config/config.php');
 require_once privatePath('src/Cache.php');
 require_once privatePath('src/R2WriteClient.php');
-require_once privatePath('src/SupabaseWriter.php');
-require_once privatePath('src/StatistikKunjungan.php');
+// Statistik pengunjung: file-file private/ TIDAK ikut ter-deploy oleh webhook
+// (deploy hanya menyalin public_html; ~/private/ dikelola manual). Karena itu
+// require di sini kondisional + ada stub, supaya situs tidak 500 bila file
+// statistik belum di-upload ke ~/private/src/.
+if (is_file(privatePath('src/SupabaseWriter.php'))) {
+    require_once privatePath('src/SupabaseWriter.php');
+}
+if (is_file(privatePath('src/StatistikKunjungan.php'))) {
+    require_once privatePath('src/StatistikKunjungan.php');
+}
+if (!class_exists('StatistikKunjungan')) {
+    // Fallback tanpa-op: footer menampilkan 0/0 sampai file asli di-upload.
+    final class StatistikKunjungan
+    {
+        public function catat(): void {}
+        public function baca(): array { return ['hari_ini' => 0, 'total' => 0]; }
+    }
+}
 
 if (!function_exists('cache')) {
     function cache(): Cache
