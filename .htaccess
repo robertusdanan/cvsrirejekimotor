@@ -1,0 +1,30 @@
+DirectoryIndex index.php index.html
+
+RewriteEngine On
+
+# Force HTTPS in production, but never on localhost/127.0.0.1
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP_HOST} !^localhost(:[0-9]+)?$
+RewriteCond %{HTTP_HOST} !^127\.0\.0\.1(:[0-9]+)?$
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Block direct browser access to private/ folder
+RewriteRule ^private/ - [F,L]
+
+# Serve real files/directories directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.php [L,QSA]
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Never serve dotfiles
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
