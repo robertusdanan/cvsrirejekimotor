@@ -35,6 +35,18 @@ if (!function_exists('str_contains')) {
         return strpos($haystack, $needle) !== false;
     }
 }
+if (!function_exists('array_is_list')) {
+    // array_is_list() baru ada di PHP 8.1; webhook deploy jalan di PHP 7.4.
+    // Tanpa ini, rebuild cache fatal ("Call to undefined function
+    // array_is_list()") begitu ada tabel registry yang berisi baris.
+    function array_is_list(array $arr): bool
+    {
+        if ($arr === []) {
+            return true;
+        }
+        return array_keys($arr) === range(0, count($arr) - 1);
+    }
+}
 
 /**
  * Returns the absolute path to the sibling `private/` directory.
