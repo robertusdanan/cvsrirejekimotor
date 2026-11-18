@@ -92,20 +92,20 @@ if (str_starts_with($cleanWa, '0')) {
       </div>
     </div>
 
-    <!-- Kolom 5: Statistik Pengunjung -->
-    <div class="footer-col">
-      <h4 class="footer-heading">Statistik</h4>
+  </div>
+
+  <!-- Statistik Pengunjung - bar lebar penuh di bawah kolom (tanpa judul) -->
+  <div class="container footer-stats-bar-wrap">
+    <div class="footer-stats-bar">
       <?php $stats = function_exists('statistikKunjungan') ? statistikKunjungan()->baca() : ['hari_ini' => 0, 'total' => 0]; ?>
-      <div class="footer-stats-box">
-        <p class="stats-row">
-          <span class="stats-label">Pengunjung Hari Ini</span>
-          <span class="stats-value"><?= number_format((int) $stats['hari_ini'], 0, ',', '.') ?></span>
-        </p>
-        <p class="stats-row">
-          <span class="stats-label">Total Pengunjung</span>
-          <span class="stats-value"><?= number_format((int) $stats['total'], 0, ',', '.') ?></span>
-        </p>
-      </div>
+      <p class="stats-row">
+        <span class="stats-label">Pengunjung Hari Ini</span>
+        <span class="stats-value"><?= number_format((int) $stats['hari_ini'], 0, ',', '.') ?></span>
+      </p>
+      <p class="stats-row">
+        <span class="stats-label">Total Pengunjung</span>
+        <span class="stats-value"><?= number_format((int) $stats['total'], 0, ',', '.') ?></span>
+      </p>
     </div>
   </div>
 

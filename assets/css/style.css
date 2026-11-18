@@ -938,7 +938,7 @@ h1, h2 {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
 }
 .footer-inner {
-  display: grid; grid-template-columns: 1.35fr 0.85fr 1.05fr 1.15fr 0.95fr;
+  display: grid; grid-template-columns: 1.25fr 0.75fr 1.35fr 1.25fr;
   gap: 40px; padding-bottom: 52px;
 }
 .footer-col { min-width: 0; }
@@ -1012,17 +1012,22 @@ h1, h2 {
 .footer-contact-item a:hover { color: #FFFFFF; }
 .footer-icon { color: var(--gold-bright); flex-shrink: 0; margin-top: 2px; }
 
-/* Kolom Statistik — JANGAN ubah markup/angka; hanya tampilan */
-.footer-stats-box {
+/* Statistik — bar lebar penuh di bawah kolom; label/angka JANGAN diubah */
+.footer-stats-bar-wrap { padding-bottom: 44px; }
+.footer-stats-bar {
+  display: flex; align-items: center;
   background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 12px;
+  border-radius: var(--radius-md); padding: 16px 24px;
 }
-.stats-row {
-  display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; margin: 0 0 8px;
+.footer-stats-bar .stats-row {
+  flex: 1; display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.86rem; margin: 0;
 }
-.stats-row:last-child { margin-bottom: 0; }
+.footer-stats-bar .stats-row + .stats-row {
+  border-left: 1px solid rgba(255,255,255,0.10); padding-left: 32px; margin-left: 32px;
+}
 .stats-label { color: #93A9CC; }
-.stats-value { color: var(--gold-bright); font-family: var(--font-mono); font-weight: 600; font-size: 0.82rem; }
+.stats-value { color: var(--gold-bright); font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
 
 .footer-bottom {
   border-top: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0,0,0,0.25);
@@ -1294,7 +1299,9 @@ h1, h2 {
 
   .footer-hours-box { max-width: 300px; margin: 0 auto 12px; }
   .footer-note-wa { max-width: 300px; margin: 0 auto; text-align: left; }
-  .footer-stats-box { max-width: 300px; margin: 0 auto 12px; }
+  .footer-stats-bar-wrap { padding-bottom: 32px; }
+  .footer-stats-bar { flex-direction: column; align-items: stretch; gap: 10px; padding: 16px 20px; }
+  .footer-stats-bar .stats-row + .stats-row { border-left: none; padding-left: 0; margin-left: 0; }
   .hours-row { flex-wrap: wrap; gap: 4px 10px; }
 
   .footer-contact { align-items: center; }
