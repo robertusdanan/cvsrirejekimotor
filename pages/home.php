@@ -90,8 +90,8 @@ require __DIR__ . '/../templates/header.php';
   <?php endif; ?>
 
   <a href="#keunggulan" class="hero-scroll-cue" aria-label="Gulir ke bawah">
-    <span class="hero-scroll-label">Gulir</span>
     <span class="hero-scroll-shell"><span class="hero-scroll-dot"></span></span>
+    <span class="hero-scroll-label">Gulir</span>
   </a>
 </section>
 

@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/admin.css">
+<?php $adminCssVersion = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time(); ?>
+<link rel="stylesheet" href="/assets/css/admin.css?v=<?= (int) $adminCssVersion ?>">
 </head>
 <body class="admin-login-body">
   <form method="post" class="admin-login-form">
