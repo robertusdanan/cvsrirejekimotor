@@ -16,6 +16,28 @@ foreach ($products as $p) {
     }
 }
 
+// Status kesegaran cache (2026-11-18): bandingkan data LIVE (Supabase)
+// dengan yang tersimpan di cache publik. Bila angkanya sama -> cache segar;
+// bila beda -> cache basi dan perlu Refresh. Angka live dihitung dari
+// $products yang sudah dimuat di atas (tanpa query tambahan).
+$liveWithImages = 0;
+foreach ($products as $p) {
+    if (!empty($p['product_images'])) {
+        $liveWithImages++;
+    }
+}
+$cacheIndex = cache()->read('products/index.json');
+$cacheItems = is_array($cacheIndex['items'] ?? null) ? $cacheIndex['items'] : [];
+$cacheWithImages = 0;
+foreach ($cacheItems as $ci) {
+    if (!empty($ci['primary_image'])) {
+        $cacheWithImages++;
+    }
+}
+$cacheMeta = cache()->read('_meta/products.json');
+$cacheFresh = (count($cacheItems) === $totalProduk && $cacheWithImages === $liveWithImages);
+$cacheUpdatedAt = $cacheMeta['updated_at'] ?? null;
+
 $pageTitle = 'Dashboard Admin';
 require __DIR__ . '/templates/admin_header.php';
 ?>
@@ -38,6 +60,15 @@ require __DIR__ . '/templates/admin_header.php';
 <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 mb-8">
     <h2 class="text-lg font-bold text-slate-800 mb-2">Cache Situs Publik</h2>
     <p class="text-sm text-slate-500 mb-4">Perubahan data/gambar di admin seharusnya memperbarui cache otomatis. Bila situs masih menampilkan data lama, tekan tombol ini untuk membangun ulang seluruh cache dari Supabase.</p>
+    <?php if ($cacheFresh): ?>
+        <div class="mb-4 rounded-lg bg-emerald-50 p-3 border border-emerald-200 text-emerald-800 text-sm">
+            <strong>Cache segar.</strong> Live: <?= number_format($totalProduk) ?> produk (<?= number_format($liveWithImages) ?> bergambar) — Cache: <?= number_format(count($cacheItems)) ?> produk (<?= number_format($cacheWithImages) ?> bergambar).<?php if ($cacheUpdatedAt): ?> Terakhir rebuild: <?= htmlspecialchars($cacheUpdatedAt) ?>.<?php endif; ?>
+        </div>
+    <?php else: ?>
+        <div class="mb-4 rounded-lg bg-amber-50 p-3 border border-amber-200 text-amber-800 text-sm">
+            <strong>Cache tidak segar!</strong> Live: <?= number_format($totalProduk) ?> produk (<?= number_format($liveWithImages) ?> bergambar) — Cache: <?= number_format(count($cacheItems)) ?> produk (<?= number_format($cacheWithImages) ?> bergambar). Tekan "Refresh Semua Cache" di bawah.
+        </div>
+    <?php endif; ?>
     <form method="POST" action="/admin/cache_refresh.php">
         <input type="hidden" name="csrf" value="<?= Auth::csrfToken() ?>">
         <input type="hidden" name="resource" value="all">

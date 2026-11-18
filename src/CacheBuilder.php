@@ -178,6 +178,32 @@ final class CacheBuilder
 
         $this->cache->write('products/index.json', ['count' => count($index), 'items' => $index]);
 
+        // VERIFIKASI (2026-11-18): baca ulang index yang baru ditulis dan
+        // pastikan isinya cocok dengan yang baru dibangun — cache TIDAK BOLEH
+        // diam-diam basi. Bila jumlah produk / jumlah produk bergambar tidak
+        // cocok, gagalkan rebuild supaya admin melihat error yang jelas,
+        // bukan situs yang menampilkan data lama tanpa ada yang sadar.
+        $verify = $this->cache->read('products/index.json');
+        $verifyItems = is_array($verify['items'] ?? null) ? $verify['items'] : [];
+        $expectWithImage = 0;
+        foreach ($allPublic as $pp) {
+            if (!empty($pp['images'])) {
+                $expectWithImage++;
+            }
+        }
+        $gotWithImage = 0;
+        foreach ($verifyItems as $vi) {
+            if (!empty($vi['primary_image'])) {
+                $gotWithImage++;
+            }
+        }
+        if (count($verifyItems) !== count($allPublic) || $gotWithImage !== $expectWithImage) {
+            throw new RuntimeException(
+                'Verifikasi cache gagal: index berisi ' . count($verifyItems) . '/' . count($allPublic)
+                . ' produk dan ' . $gotWithImage . '/' . $expectWithImage . ' bergambar.'
+            );
+        }
+
         $featured = array_values(array_filter($allPublic, fn ($p) => $p['featured']));
         $this->cache->write('homepage/featured.json', ['items' => array_slice($featured, 0, 12)]);
 
