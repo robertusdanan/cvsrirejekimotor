@@ -1358,6 +1358,7 @@ h1, h2 {
   .contact-cards-grid { grid-template-columns: 1fr; }
 
   .footer-col { padding: 24px 0; }
+  .footer-bottom { padding-bottom: 96px; } /* copyright tidak tertutup pill WA (fixed, 72px) saat scroll mentok bawah */
   .map-embed { aspect-ratio: 4/3; }
 
   .marketplace-buttons { flex-direction: column; }
