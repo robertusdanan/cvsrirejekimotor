@@ -1429,3 +1429,6 @@ a.product-card-image { display: block; }
 .product-card-body h3 a:hover { color: var(--gold-deep); }
 .product-card-actions { display: flex; gap: 8px; margin-top: 14px; }
 .product-card-actions .btn-card { flex: 1; min-height: 42px; padding: 10px 8px; font-size: 0.85rem; }
+/* Blok Produk Terkait di halaman detail */
+.related-products { margin: 8px auto 72px; }
+.related-products .section-head { margin-bottom: 24px; }

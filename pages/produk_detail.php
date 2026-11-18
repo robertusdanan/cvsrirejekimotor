@@ -200,6 +200,83 @@ require __DIR__ . '/../templates/header.php';
   </div>
 </section>
 
+<?php
+// Produk Terkait: merk atau kategori sama (maks. 4), bukan produk ini sendiri
+$related = [];
+$allProducts = cache()->read('products/index.json')['items'] ?? [];
+foreach ($allProducts as $rp) {
+    if (($rp['slug'] ?? '') === $product['slug']) {
+        continue;
+    }
+    $sameMerk = !empty($product['merk']) && !empty($rp['merk']) && $rp['merk'] === $product['merk'];
+    $sameCat = !empty($product['category']) && !empty($rp['category']) && $rp['category'] === $product['category'];
+    if ($sameMerk || $sameCat) {
+        $related[] = $rp;
+    }
+    if (count($related) >= 4) {
+        break;
+    }
+}
+?>
+<?php if (!empty($related)): ?>
+<section class="container related-products reveal">
+  <div class="section-head">
+    <div>
+      <span class="section-eyebrow">Mungkin Anda Butuhkan Juga</span>
+      <h2>Produk Terkait</h2>
+    </div>
+    <a href="/produk" class="section-link-all">Lihat Semua &rarr;</a>
+  </div>
+  <div class="product-grid">
+    <?php foreach ($related as $i => $p): ?>
+      <?php
+        $relPrice = $p['harga_final'] ?? $p['harga_jual'] ?? 0;
+        $relWaText = "Halo CV Sri Rejeki Motor, saya tertarik dengan suku cadang:\n"
+            . '*' . $p['nama_produk'] . "*\n"
+            . (!empty($p['kode_barang']) ? 'Kode Part (PN): ' . $p['kode_barang'] . "\n" : '')
+            . ($relPrice > 0 ? '' : "Berapa harga barang ini?\n")
+            . "Apakah barang ini masih tersedia?\n"
+            . 'Link: https://cvsrirejekimotor.com/produk/' . $p['slug'];
+        $relWaUrl = $cleanWa !== '' ? 'https://wa.me/' . $cleanWa . '?text=' . urlencode($relWaText) : '';
+      ?>
+      <article class="product-card reveal" style="--reveal-delay: <?= min($i, 7) * 0.05 ?>s">
+        <a class="product-card-image" href="/produk/<?= e($p['slug']) ?>" aria-label="<?= e($p['nama_produk']) ?>">
+          <?php if (!empty($p['primary_image'])): ?>
+            <img src="<?= e(mediaUrl($p['primary_image'])) ?>" alt="<?= e($p['nama_produk']) ?>" loading="lazy">
+          <?php else: ?>
+            <div class="no-image">
+              <span class="no-image-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+              <span>Foto Belum Tersedia</span>
+            </div>
+          <?php endif; ?>
+        </a>
+        <div class="product-card-body">
+          <p class="part-code"><?= !empty($p['kode_barang']) ? 'PN. ' . e($p['kode_barang']) : '&nbsp;' ?></p>
+          <h3><a href="/produk/<?= e($p['slug']) ?>"><?= e($p['nama_produk']) ?></a></h3>
+          <p class="meta">
+            <?php if (!empty($p['merk'])): ?><span class="meta-brand"><?= e($p['merk']) ?></span><?php endif; ?>
+            <?php if (!empty($p['nama_mobil'])): ?><span class="meta-car">· <?= e($p['nama_mobil']) ?></span><?php endif; ?>
+          </p>
+          <div class="price-wrap">
+            <?php if ($relPrice > 0): ?>
+              <span class="price"><?= rupiah($relPrice) ?></span>
+            <?php else: ?>
+              <span class="price">Tanya Harga</span>
+            <?php endif; ?>
+          </div>
+          <div class="product-card-actions">
+            <a class="btn btn-outline btn-card" href="/produk/<?= e($p['slug']) ?>">Detail Barang</a>
+            <?php if ($relWaUrl !== ''): ?>
+              <a class="btn btn-primary btn-card" href="<?= e($relWaUrl) ?>" target="_blank" rel="noopener noreferrer">Chat WhatsApp</a>
+            <?php endif; ?>
+          </div>
+        </div>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</section>
+<?php endif; ?>
+
 <script type="application/ld+json">
 <?= json_encode(array_filter([
   '@context' => 'https://schema.org',
