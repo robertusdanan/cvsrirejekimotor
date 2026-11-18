@@ -914,7 +914,6 @@ h1, h2 {
 .stats-row:last-child { margin-bottom: 0; }
 .stats-label { color: #8A92A0; }
 .stats-value { color: #FFFFFF; font-family: var(--font-mono); font-weight: 600; font-size: 0.78rem; }
-.footer-note-stats { font-size: 0.78rem; color: #8A92A0; line-height: 1.4; margin: 0; }
 
 .footer-bottom {
   border-top: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0,0,0,0.2);

@@ -106,7 +106,6 @@ if (str_starts_with($cleanWa, '0')) {
           <span class="stats-value"><?= number_format((int) $stats['total'], 0, ',', '.') ?></span>
         </p>
       </div>
-      <p class="footer-note-stats">Dihitung otomatis setiap kunjungan, tanpa perlu login.</p>
     </div>
   </div>
 
