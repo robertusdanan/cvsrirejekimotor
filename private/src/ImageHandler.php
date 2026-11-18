@@ -99,6 +99,127 @@ final class ImageHandler
         return $paths; // caller decides which variant path(s) to store in product_images
     }
 
+    /**
+     * Instance wrapper used by the admin pages (product_new, product_edit,
+     * hero). $folder is 'products/{product-id}' or 'hero'.
+     *
+     * Returns the stored variants plus 'path' (the display variant) and
+     * 'url' (its full public URL). Callers store $res['path'] in
+     * product_images / hero_slides.
+     */
+    public function uploadAndConvertWebP(array $fileEntry, string $folder): array
+    {
+        $key = preg_replace('#^products/#', '', trim($folder, '/'));
+        $paths = self::handleUpload($fileEntry, (string) $key);
+        $path = $paths['medium'] ?? $paths['large'] ?? $paths['original'] ?? '';
+        return array_merge($paths, [
+            'path' => $path,
+            'url'  => $path !== '' ? self::publicUrl($path) : '',
+        ]);
+    }
+
+    /**
+     * Stores a video file as-is (no re-encode) for hero slides. Returns the
+     * full public URL of the stored file.
+     */
+    public function uploadDirectFile(array $fileEntry, string $folder): string
+    {
+        if (!isset($fileEntry['tmp_name']) || $fileEntry['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Upload gagal atau tidak lengkap.');
+        }
+        if ($fileEntry['size'] > 64 * 1024 * 1024) {
+            throw new RuntimeException('Ukuran file terlalu besar (maks 64MB).');
+        }
+        $ext = strtolower(pathinfo((string) ($fileEntry['name'] ?? 'file'), PATHINFO_EXTENSION));
+        if (!in_array($ext, ['mp4', 'webm', 'mov'], true)) {
+            throw new RuntimeException('Format video tidak didukung. Gunakan MP4 atau WebM.');
+        }
+        $id = bin2hex(random_bytes(8));
+        $key = trim($folder, '/') . '/' . $id . '.' . $ext;
+        $localPath = rtrim((string) config('STORAGE_PATH'), '/') . '/' . $key;
+        $dir = dirname($localPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0750, true);
+        }
+        if (!@move_uploaded_file($fileEntry['tmp_name'], $localPath)
+            && !@copy($fileEntry['tmp_name'], $localPath)) {
+            throw new RuntimeException('Gagal menyimpan video.');
+        }
+        if (config('R2_ACCESS_KEY_ID') && config('R2_SECRET_ACCESS_KEY')) {
+            try {
+                $r2 = new R2WriteClient(
+                    config('R2_ACCESS_KEY_ID'),
+                    config('R2_SECRET_ACCESS_KEY'),
+                    config('R2_S3_CLIENTS'),
+                    config('R2_BUCKET')
+                );
+                $mime = $ext === 'webm' ? 'video/webm' : 'video/mp4';
+                $r2->putObjectFromFile($key, $localPath, $mime);
+            } catch (Throwable $e) {
+                error_log('R2 upload warning: ' . $e->getMessage());
+            }
+        }
+        return self::publicUrl($key);
+    }
+
+    /**
+     * Deletes one stored image from R2 and from the local storage mirror.
+     * Removes every size variant sharing the same file id, since the admin
+     * deletes a whole image (not one variant).
+     */
+    public function deleteR2File(string $path): void
+    {
+        $key = ltrim($path, '/');
+        $keys = [$key];
+        if (preg_match('#^(products/.+/)(thumbnail|medium|large|original)/([^/]+\.webp)$#', $key, $m)) {
+            foreach (['thumbnail', 'medium', 'large', 'original'] as $label) {
+                $keys[] = $m[1] . $label . '/' . $m[3];
+            }
+            $keys = array_values(array_unique($keys));
+        }
+        $storageRoot = rtrim((string) config('STORAGE_PATH'), '/');
+        foreach ($keys as $k) {
+            @unlink($storageRoot . '/' . $k);
+        }
+        if (config('R2_ACCESS_KEY_ID') && config('R2_SECRET_ACCESS_KEY')) {
+            try {
+                $r2 = new R2WriteClient(
+                    config('R2_ACCESS_KEY_ID'),
+                    config('R2_SECRET_ACCESS_KEY'),
+                    config('R2_S3_CLIENTS'),
+                    config('R2_BUCKET')
+                );
+                foreach ($keys as $k) {
+                    try {
+                        $r2->deleteObject($k);
+                    } catch (Throwable $e) {
+                        error_log('R2 delete warning: ' . $e->getMessage());
+                    }
+                }
+            } catch (Throwable $e) {
+                error_log('R2 delete warning: ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Full public URL for an R2 key (same rule as the public mediaUrl()).
+     * Kept here because ImageHandler is also loaded by contexts that never
+     * include the public bootstrap (e.g. the Supabase webhook handler).
+     */
+    private static function publicUrl(string $key): string
+    {
+        $key = trim($key, '/');
+        if (str_starts_with($key, 'http://') || str_starts_with($key, 'https://')) {
+            return $key;
+        }
+        $r2Url = rtrim((string) config('R2_PUBLIC_URL'), '/');
+        if ($r2Url !== '') {
+            return "{$r2Url}/{$key}";
+        }
+        return "/storage/{$key}";
+    }
+
     private static function loadImage(string $path, string $mime)
     {
         switch ($mime) {
