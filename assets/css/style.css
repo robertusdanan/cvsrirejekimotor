@@ -262,7 +262,7 @@ body.has-hero .site-header:not(.is-scrolled) .nav-toggle span { background: #FFF
   position: relative; min-height: 100vh; min-height: 100svh; min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; background: var(--navy-deep); color: #FFFFFF;
-  padding: 128px 24px 96px;
+  padding: 128px 24px 136px;
 }
 .hero::after {
   content: ''; position: absolute; inset: auto 0 0 0; height: 140px; z-index: 2;
@@ -371,7 +371,7 @@ body.has-hero .site-header:not(.is-scrolled) .nav-toggle span { background: #FFF
 .hero-trust svg { color: var(--gold-bright); flex-shrink: 0; }
 
 .hero-scroll-cue {
-  position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%);
   z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px;
   color: rgba(255, 255, 255, 0.75); text-decoration: none;
   animation: heroScrollBob 2.2s ease-in-out infinite;
@@ -492,7 +492,7 @@ h1, h2 {
    ================================================================ */
 .features-bar {
   background: var(--navy); border-radius: 24px;
-  padding: 52px 40px; margin: 0 auto 64px;
+  padding: 52px 40px; margin: 72px auto 64px;
   box-shadow: var(--shadow-lg);
 }
 .features-bar .feature-item {
@@ -1217,7 +1217,7 @@ h1, h2 {
   .nav-scrim.is-open { opacity: 1; pointer-events: auto; }
 
   /* Hero */
-  .hero { min-height: 100vh; min-height: 100svh; min-height: 100dvh; padding: 104px 20px 72px; }
+  .hero { min-height: 100vh; min-height: 100svh; min-height: 100dvh; padding: 104px 20px 104px; }
   .hero-search-form { display: none; }
   .hero-actions { flex-direction: row; align-items: stretch; flex-wrap: nowrap; gap: 10px; }
   .hero-actions .btn { width: auto; flex: 1 1 0; padding-left: 10px; padding-right: 10px; white-space: nowrap; }
@@ -1233,7 +1233,7 @@ h1, h2 {
 
   /* Sections */
   .featured, .catalog, .brand-explorer, .company-profile, .location { padding: 64px 0; }
-  .features-bar { padding: 40px 24px; margin-bottom: 48px; }
+  .features-bar { padding: 40px 24px; margin: 56px auto 48px; }
 
   /* Grids: single column at the mobile threshold */
   .features-grid { grid-template-columns: 1fr; }
@@ -1330,7 +1330,7 @@ h1, h2 {
   .section-link-all { font-size: 0.86rem; }
 
   .featured, .catalog, .brand-explorer, .company-profile, .location { padding: 52px 0; }
-  .features-bar { padding: 32px 20px; }
+  .features-bar { padding: 32px 20px; margin-top: 48px; }
 
   .product-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
   .product-card-body { padding: 14px; }
