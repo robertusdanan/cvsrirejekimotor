@@ -55,6 +55,33 @@ final class CacheBuilder
         $this->cache = $cache ?? new Cache();
     }
 
+    /**
+     * MERGE_GROUPS — produk yang sebenarnya SAMA (kode barang di Accurate
+     * ditulis berbeda: strip/huruf/awalan merk), digabung jadi SATU produk
+     * kanonis dengan pilihan merk (variants).
+     *
+     * Format: kode kanonis => daftar kode anggota (urutan = urutan varian;
+     * anggota PERTAMA = kanonis/default). Kode kanonis = bentuk OEM paling
+     * bersih. Dua baris TIDAK BISA memegang kode yang sama di Supabase
+     * (kode_barang UNIQUE), jadi penggabungan dilakukan di lapisan
+     * cache/website — semua 1000 baris tetap ada di Supabase.
+     *
+     * Grup 2 & 6: kedua anggota bermerk SAMA (TE) dengan harga berbeda
+     * (kemungkinan salah ketik di Accurate) -> digabung jadi SATU varian TE
+     * dengan harga TERENDAH.
+     */
+    private const MERGE_GROUPS = [
+        'MB109936' => ['MB109936', 'TE-MB109936', 'TEMB-109936'],
+        '8-94223-366TE' => ['8-94223-366TE', '8-94223-366-TE'],
+        '04465-0K100' => ['04465-0K100', '044650K100'],
+        '04495-0K040' => ['04495-0K040', '044950K040'],
+        'MB489484' => ['MB489484', 'TEMB489484'],
+        'MT141213' => ['MT141213', 'TEMT-141213'],
+        '48632-27010' => ['48632-27010', 'TE48632-27010'],
+        'GAPMW030499' => ['GAPMW030499', 'GWMW030499'],
+        'MH024000' => ['MH024000', 'GAPMH024000'],
+    ];
+
     public function rebuildAll(): void
     {
         $errors = [];
@@ -93,60 +120,47 @@ final class CacheBuilder
     public function rebuildProducts(): array
     {
         $rows = $this->writer->getProducts();
-        $allPublic = [];
-        $slugs = [];
 
+        // --- Kelompokkan baris: anggota grup varian vs standalone ---
+        $memberToGroup = [];
+        foreach (self::MERGE_GROUPS as $canonical => $members) {
+            foreach ($members as $m) {
+                $memberToGroup[$m] = $canonical;
+            }
+        }
+        $grouped = [];
+        $standalone = [];
         foreach ($rows as $row) {
             $kode = trim((string) ($row['kode_barang'] ?? ''));
-            $nama = trim((string) ($row['nama_produk'] ?? ''));
-            if ($kode === '' || $nama === '') {
+            if ($kode === '') {
                 continue;
             }
-
-            $slug = slugify($nama . '-' . $kode);
-            $base = $slug;
-            $n = 1;
-            while (isset($slugs[$slug])) {
-                $slug = $base . '-' . (++$n);
+            $canon = $memberToGroup[$kode] ?? null;
+            if ($canon !== null) {
+                $grouped[$canon][] = $row;
+            } else {
+                $standalone[] = $row;
             }
-            $slugs[$slug] = true;
+        }
 
-            $images = [];
-            $rawImages = is_array($row['product_images'] ?? null) ? $row['product_images'] : [];
-            usort($rawImages, fn ($a, $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
+        $allPublic = [];
+        $slugs = [];
+        $redirects = [];
 
-            foreach ($rawImages as $img) {
-                if (!empty($img['path'])) {
-                    $images[] = [
-                        'path'    => $img['path'],
-                        'primary' => (bool) ($img['is_primary'] ?? false),
-                    ];
-                }
+        // Produk standalone: seperti sebelumnya.
+        foreach ($standalone as $row) {
+            $product = $this->buildSingleProduct($row, $slugs);
+            if ($product !== null) {
+                $allPublic[] = $product;
             }
+        }
 
-            $mps = is_array($row['marketplaces'] ?? null) ? $row['marketplaces'] : (is_string($row['marketplaces'] ?? null) ? json_decode($row['marketplaces'], true) : []);
-
-            $product = [
-                'id'           => $row['id'] ?? $kode,
-                'slug'         => $slug,
-                'kode_barang'  => $kode,
-                'nama_produk'  => $nama,
-                'nama_mobil'   => !empty($row['nama_mobil']) ? $row['nama_mobil'] : null,
-                'nama_lain'    => !empty($row['nama_lain']) ? $row['nama_lain'] : null,
-                'merk'         => !empty($row['merk']) ? $row['merk'] : null,
-                'category'     => !empty($row['category']) ? $row['category'] : null,
-                'stok'         => (float) ($row['stok'] ?? 0),
-                'harga_jual'   => (int) ($row['harga_jual'] ?? 0),
-                'description'  => $row['description'] ?? null,
-                'featured'     => (bool) ($row['featured'] ?? false),
-                'sort_order'   => (int) ($row['sort_order'] ?? 0),
-                'images'       => $images,
-                'marketplaces' => is_array($mps) ? $mps : [],
-                'updated_at'   => $row['updated_at'] ?? date('c'),
-            ];
-
-            $this->cache->write("products/{$slug}.json", $product);
-            $allPublic[] = $product;
+        // Produk gabungan: satu kanonis + variants per merk.
+        foreach ($grouped as $canonicalKode => $members) {
+            $product = $this->buildMergedProduct($canonicalKode, $members, $slugs, $redirects);
+            if ($product !== null) {
+                $allPublic[] = $product;
+            }
         }
 
         usort($allPublic, fn ($a, $b) => $a['sort_order'] <=> $b['sort_order']);
@@ -162,18 +176,41 @@ final class CacheBuilder
             if ($primaryImg === null && !empty($p['images'])) {
                 $primaryImg = $p['images'][0]['path'];
             }
-            return [
-                'id'            => $p['id'],
-                'slug'          => $p['slug'],
-                'nama_produk'   => $p['nama_produk'],
-                'kode_barang'   => $p['kode_barang'],
-                'merk'          => $p['merk'],
-                'nama_mobil'    => $p['nama_mobil'],
-                'category'      => $p['category'],
-                'harga_jual'    => $p['harga_jual'],
-                'stok'          => $p['stok'],
+            // primary_image: gambar varian default; bila varian default
+            // belum bergambar, pakai gambar varian lain yang ada supaya
+            // kartu tidak kosong padahal ada varian yang bergambar.
+            if ($primaryImg === null && !empty($p['variants'])) {
+                foreach ($p['variants'] as $v) {
+                    if (!empty($v['primary_image'])) {
+                        $primaryImg = $v['primary_image'];
+                        break;
+                    }
+                }
+            }
+            $item = [
+                'id' => $p['id'],
+                'slug' => $p['slug'],
+                'nama_produk' => $p['nama_produk'],
+                'kode_barang' => $p['kode_barang'],
+                'merk' => $p['merk'],
+                'nama_mobil' => $p['nama_mobil'],
+                'nama_lain' => $p['nama_lain'],
+                'category' => $p['category'],
+                'harga_jual' => $p['harga_jual'],
+                'stok' => $p['stok'],
                 'primary_image' => $primaryImg,
             ];
+            if (!empty($p['variants'])) {
+                $item['variants'] = array_map(function ($v) {
+                    return [
+                        'kode_barang' => $v['kode_barang'],
+                        'merk' => $v['merk'],
+                        'harga_jual' => $v['harga_jual'],
+                        'primary_image' => $v['primary_image'],
+                    ];
+                }, $p['variants']);
+            }
+            return $item;
         }, $allPublic);
 
         $this->cache->write('products/index.json', ['count' => count($index), 'items' => $index]);
@@ -187,7 +224,16 @@ final class CacheBuilder
         $verifyItems = is_array($verify['items'] ?? null) ? $verify['items'] : [];
         $expectWithImage = 0;
         foreach ($allPublic as $pp) {
-            if (!empty($pp['images'])) {
+            $has = !empty($pp['images']);
+            if (!$has && !empty($pp['variants'])) {
+                foreach ($pp['variants'] as $v) {
+                    if (!empty($v['images'])) {
+                        $has = true;
+                        break;
+                    }
+                }
+            }
+            if ($has) {
                 $expectWithImage++;
             }
         }
@@ -209,12 +255,17 @@ final class CacheBuilder
 
         $this->writeTaxonomyIndexes($index);
 
-        // Remove orphan product files
+        // Redirects: slug lama (varian non-kanonis) -> slug kanonis.
+        if ($redirects !== []) {
+            $this->cache->write('products/redirects.json', ['redirects' => $redirects]);
+        }
+
+        // Remove orphan product files (kecuali index.json + redirects.json)
         $dir = rtrim((string) config('CACHE_PATH'), '/') . '/products';
         if (is_dir($dir)) {
             $validSlugs = array_keys($slugs);
             foreach (glob($dir . '/*.json') ?: [] as $f) {
-                if ($f === $dir . '/index.json') {
+                if ($f === $dir . '/index.json' || $f === $dir . '/redirects.json') {
                     continue;
                 }
                 $s = basename($f, '.json');
@@ -228,6 +279,228 @@ final class CacheBuilder
         $this->cache->bumpVersion('homepage');
 
         return $allPublic;
+    }
+
+    /** Bangun SATU produk dari SATU baris (tanpa grup). Null bila kode/nama kosong. */
+    private function buildSingleProduct(array $row, array &$slugs): ?array
+    {
+        $kode = trim((string) ($row['kode_barang'] ?? ''));
+        $nama = trim((string) ($row['nama_produk'] ?? ''));
+        if ($kode === '' || $nama === '') {
+            return null;
+        }
+        $slug = $this->uniqueSlug(slugify($nama . '-' . $kode), $slugs);
+        $product = [
+            'id' => $row['id'] ?? $kode,
+            'slug' => $slug,
+            'kode_barang' => $kode,
+            'nama_produk' => $nama,
+            'nama_mobil' => !empty($row['nama_mobil']) ? $row['nama_mobil'] : null,
+            'nama_lain' => !empty($row['nama_lain']) ? $row['nama_lain'] : null,
+            'merk' => !empty($row['merk']) ? $row['merk'] : null,
+            'category' => !empty($row['category']) ? $row['category'] : null,
+            'stok' => (float) ($row['stok'] ?? 0),
+            'harga_jual' => (int) ($row['harga_jual'] ?? 0),
+            'description' => $row['description'] ?? null,
+            'featured' => (bool) ($row['featured'] ?? false),
+            'sort_order' => (int) ($row['sort_order'] ?? 0),
+            'images' => $this->rowImages($row),
+            'marketplaces' => $this->rowMarketplaces($row),
+            'updated_at' => $row['updated_at'] ?? date('c'),
+        ];
+        $this->cache->write("products/{$slug}.json", $product);
+        return $product;
+    }
+
+    /**
+     * Bangun SATU produk kanonis dari beberapa baris anggota grup.
+     * $members = baris anggota (urutan = urutan MERGE_GROUPS; anggota
+     * pertama = kanonis/default). Mengisi $redirects dengan
+     * slug-lama-anggota => slug-kanonis. Null bila tidak ada anggota valid.
+     */
+    private function buildMergedProduct(string $canonicalKode, array $members, array &$slugs, array &$redirects): ?array
+    {
+        $order = self::MERGE_GROUPS[$canonicalKode] ?? [];
+        $byKode = [];
+        foreach ($members as $m) {
+            $k = trim((string) ($m['kode_barang'] ?? ''));
+            if ($k !== '') {
+                $byKode[$k] = $m;
+            }
+        }
+        $ordered = [];
+        foreach ($order as $k) {
+            if (isset($byKode[$k])) {
+                $ordered[] = $byKode[$k];
+            }
+        }
+        foreach ($byKode as $k => $m) {
+            if (!in_array($k, $order, true)) {
+                $ordered[] = $m;
+            }
+        }
+        if ($ordered === []) {
+            return null;
+        }
+        $primary = $ordered[0];
+
+        // Field bersama dari anggota kanonis (pertama); bila kosong, ambil
+        // dari anggota lain yang punya nilai.
+        $nama = trim((string) ($primary['nama_produk'] ?? ''));
+        $namaMobil = !empty($primary['nama_mobil']) ? $primary['nama_mobil'] : null;
+        $namaLain = !empty($primary['nama_lain']) ? $primary['nama_lain'] : null;
+        $category = !empty($primary['category']) ? $primary['category'] : null;
+        $description = $primary['description'] ?? null;
+        $featured = (bool) ($primary['featured'] ?? false);
+        $sortOrder = (int) ($primary['sort_order'] ?? 0);
+        $updatedAt = $primary['updated_at'] ?? date('c');
+        foreach ($ordered as $m) {
+            if ($nama === '') {
+                $nama = trim((string) ($m['nama_produk'] ?? ''));
+            }
+            if ($namaMobil === null && !empty($m['nama_mobil'])) {
+                $namaMobil = $m['nama_mobil'];
+            }
+            if ($namaLain === null && !empty($m['nama_lain'])) {
+                $namaLain = $m['nama_lain'];
+            }
+            if ($category === null && !empty($m['category'])) {
+                $category = $m['category'];
+            }
+            if (($description === null || $description === '') && !empty($m['description'])) {
+                $description = $m['description'];
+            }
+            if (!$featured && !empty($m['featured'])) {
+                $featured = true;
+            }
+            if ($sortOrder === 0 && !empty($m['sort_order'])) {
+                $sortOrder = (int) $m['sort_order'];
+            }
+        }
+        if ($nama === '') {
+            return null;
+        }
+
+        $slug = $this->uniqueSlug(slugify($nama . '-' . $canonicalKode), $slugs);
+
+        // Variants: satu per merk (gabungkan anggota bermerk sama -> harga terendah).
+        $variantsByMerk = [];
+        foreach ($ordered as $m) {
+            $mkode = trim((string) ($m['kode_barang'] ?? ''));
+            $merk = !empty($m['merk']) ? trim((string) $m['merk']) : null;
+            $harga = (int) ($m['harga_jual'] ?? 0);
+            $imgs = $this->rowImages($m);
+            $key = $merk !== null ? strtolower($merk) : ('__kode__:' . $mkode);
+            if (!isset($variantsByMerk[$key])) {
+                $variantsByMerk[$key] = [
+                    'kode_barang' => $mkode,
+                    'merk' => $merk,
+                    'harga_jual' => $harga,
+                    'images' => $imgs,
+                    'primary_image' => $this->primaryImage($imgs),
+                ];
+            } else {
+                if ($harga < $variantsByMerk[$key]['harga_jual']) {
+                    $variantsByMerk[$key]['harga_jual'] = $harga;
+                    $variantsByMerk[$key]['kode_barang'] = $mkode;
+                }
+                $seen = [];
+                foreach ($variantsByMerk[$key]['images'] as $im) {
+                    $seen[$im['path']] = true;
+                }
+                foreach ($imgs as $im) {
+                    if (!isset($seen[$im['path']])) {
+                        $variantsByMerk[$key]['images'][] = $im;
+                        $seen[$im['path']] = true;
+                    }
+                }
+                $variantsByMerk[$key]['primary_image'] = $this->primaryImage($variantsByMerk[$key]['images']);
+            }
+        }
+        $variants = array_values($variantsByMerk);
+        $default = $variants[0];
+
+        // Redirects: slug lama tiap anggota non-kanonis -> slug kanonis.
+        foreach ($ordered as $m) {
+            $mkode = trim((string) ($m['kode_barang'] ?? ''));
+            $mnama = trim((string) ($m['nama_produk'] ?? ''));
+            if ($mkode === '' || $mnama === '' || $mkode === $canonicalKode) {
+                continue;
+            }
+            $oldSlug = slugify($mnama . '-' . $mkode);
+            if ($oldSlug !== '' && $oldSlug !== $slug) {
+                $redirects[$oldSlug] = $slug;
+            }
+        }
+
+        $product = [
+            'id' => $primary['id'] ?? $canonicalKode,
+            'slug' => $slug,
+            'kode_barang' => $canonicalKode,
+            'nama_produk' => $nama,
+            'nama_mobil' => $namaMobil,
+            'nama_lain' => $namaLain,
+            'merk' => $default['merk'],
+            'category' => $category,
+            'stok' => (float) ($primary['stok'] ?? 0),
+            'harga_jual' => $default['harga_jual'],
+            'description' => $description,
+            'featured' => $featured,
+            'sort_order' => $sortOrder,
+            'images' => $default['images'],
+            'marketplaces' => $this->rowMarketplaces($primary),
+            'updated_at' => $updatedAt,
+            'variants' => $variants,
+        ];
+        $this->cache->write("products/{$slug}.json", $product);
+        return $product;
+    }
+
+    /** Slug unik (tambah -2, -3 bila bentrok). */
+    private function uniqueSlug(string $slug, array &$slugs): string
+    {
+        $base = $slug;
+        $n = 1;
+        while (isset($slugs[$slug])) {
+            $slug = $base . '-' . (++$n);
+        }
+        $slugs[$slug] = true;
+        return $slug;
+    }
+
+    /** Gambar produk dari baris Supabase (urut sort_order). */
+    private function rowImages(array $row): array
+    {
+        $images = [];
+        $rawImages = is_array($row['product_images'] ?? null) ? $row['product_images'] : [];
+        usort($rawImages, fn ($a, $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
+        foreach ($rawImages as $img) {
+            if (!empty($img['path'])) {
+                $images[] = [
+                    'path' => $img['path'],
+                    'primary' => (bool) ($img['is_primary'] ?? false),
+                ];
+            }
+        }
+        return $images;
+    }
+
+    /** Gambar utama dari daftar gambar (primary, else pertama). */
+    private function primaryImage(array $images): ?string
+    {
+        foreach ($images as $img) {
+            if (!empty($img['primary'])) {
+                return $img['path'];
+            }
+        }
+        return !empty($images) ? $images[0]['path'] : null;
+    }
+
+    /** Marketplaces dari baris (array, atau JSON string). */
+    private function rowMarketplaces(array $row): array
+    {
+        $mps = is_array($row['marketplaces'] ?? null) ? $row['marketplaces'] : (is_string($row['marketplaces'] ?? null) ? json_decode($row['marketplaces'], true) : []);
+        return is_array($mps) ? $mps : [];
     }
 
     /**
@@ -251,12 +524,23 @@ final class CacheBuilder
      */
     private function writeTaxonomyIndexes(array $index): void
     {
-        // --- Merek: satu nilai per produk ---
+        // --- Merek: satu nilai per produk; produk gabungan dihitung di
+        // SETIAP merk variannya (jadi filter merk TOYOTA menemukan produk
+        // 04465-0K100 yang digabung, begitu juga DAIMARU). ---
         $brandCounts = [];
         foreach ($index as $p) {
-            $m = trim((string) ($p['merk'] ?? ''));
-            if ($m !== '') {
-                $brandCounts[$m] = ($brandCounts[$m] ?? 0) + 1;
+            if (!empty($p['variants'])) {
+                foreach ($p['variants'] as $v) {
+                    $m = trim((string) ($v['merk'] ?? ''));
+                    if ($m !== '') {
+                        $brandCounts[$m] = ($brandCounts[$m] ?? 0) + 1;
+                    }
+                }
+            } else {
+                $m = trim((string) ($p['merk'] ?? ''));
+                if ($m !== '') {
+                    $brandCounts[$m] = ($brandCounts[$m] ?? 0) + 1;
+                }
             }
         }
         $brandRows = $this->readTaxonomyTable('brands', 'name,short_name,sort_order');

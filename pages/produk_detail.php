@@ -3,6 +3,12 @@ $product = cache()->read("products/{$slug}.json");
 if ($product !== null) { $product['nama_produk'] = displayProductName($product['nama_produk'] ?? null); }
 
 if ($product === null) {
+    // Slug lama dari varian yang sudah digabung -> redirect 301 ke slug kanonis.
+    $redirects = cache()->read('products/redirects.json')['redirects'] ?? [];
+    if (!empty($redirects[$slug])) {
+        header('Location: /produk/' . $redirects[$slug], true, 301);
+        exit;
+    }
     http_response_code(404);
     require __DIR__ . '/not_found.php';
     return;
@@ -31,6 +37,36 @@ $waText = "Halo CV Sri Rejeki Motor, saya tertarik dengan suku cadang:\n"
         . ($priceFinal > 0 ? "Apakah barang ini masih tersedia dan cocok untuk kendaraan saya?\n" : "Berapa harga barang ini? Apakah masih tersedia dan cocok untuk kendaraan saya?\n")
         . "Link: {$currentUrl}";
 $waUrl = "https://wa.me/{$cleanWa}?text=" . urlencode($waText);
+
+// Data varian (pilih merk) untuk pill + JS: harga, galeri, PN, merk, WA per merk.
+$variants = $product['variants'] ?? [];
+$hasVariants = !empty($variants);
+$variantData = [];
+foreach ($variants as $v) {
+    $vPrice = (int) ($v['harga_jual'] ?? 0);
+    $vImgs = [];
+    foreach (($v['images'] ?? []) as $im) {
+        if (!empty($im['path'])) {
+            $vImgs[] = mediaUrl($im['path']);
+        }
+    }
+    $vWaText = "Halo CV Sri Rejeki Motor, saya tertarik dengan suku cadang:\n"
+        . "*{$product['nama_produk']}*\n"
+        . (!empty($v['kode_barang']) ? "Kode Part (PN): {$v['kode_barang']}\n" : '')
+        . (!empty($v['merk']) ? "Merek: {$v['merk']}\n" : '')
+        . ($vPrice > 0 ? "Harga: " . rupiah($vPrice) . "\n\n" : '')
+        . ($vPrice > 0 ? "Apakah barang ini masih tersedia dan cocok untuk kendaraan saya?\n" : "Berapa harga barang ini? Apakah masih tersedia dan cocok untuk kendaraan saya?\n")
+        . "Link: {$currentUrl}";
+    $variantData[] = [
+        'kode_barang' => $v['kode_barang'] ?? '',
+        'merk' => $v['merk'] ?? '',
+        'label' => !empty($v['merk']) ? $v['merk'] : ($v['kode_barang'] ?? ''),
+        'harga_jual' => $vPrice,
+        'price_text' => $vPrice > 0 ? rupiah($vPrice) : 'Tanya Harga',
+        'images' => $vImgs,
+        'wa_url' => $cleanWa !== '' ? "https://wa.me/{$cleanWa}?text=" . urlencode($vWaText) : '',
+    ];
+}
 
 // SEO: deskripsi + canonical + Open Graph unik per produk
 $descParts = [];
@@ -64,6 +100,7 @@ require __DIR__ . '/../templates/header.php';
 
 <section class="container product-detail">
   <div class="product-gallery reveal">
+    <div id="variantGallery">
     <?php if (!empty($product['images'])): ?>
       <div class="gallery-main">
         <img id="mainImage" src="<?= e(mediaUrl($product['images'][0]['path'])) ?>" alt="<?= e($product['nama_produk']) ?>" fetchpriority="high">
@@ -83,6 +120,7 @@ require __DIR__ . '/../templates/header.php';
         <span style="margin-top: 12px; font-weight: 500;">Foto Produk Belum Diunggah</span>
       </div>
     <?php endif; ?>
+    </div>
 
     <div class="detail-guarantee-card">
       <div class="guarantee-item">
@@ -118,21 +156,29 @@ require __DIR__ . '/../templates/header.php';
       <div class="part-code-box">
         <span class="part-code-label">Part Number (PN):</span>
         <code class="part-code-val" id="pnCode"><?= e($product['kode_barang']) ?></code>
-        <button type="button" class="btn-copy-pn" onclick="navigator.clipboard.writeText('<?= e($product['kode_barang']) ?>'); this.innerText='Tersalin!'; setTimeout(()=>this.innerText='Salin PN', 2000);" title="Salin Kode Part">
+        <button type="button" class="btn-copy-pn" id="copyPnBtn" data-kode="<?= e($product['kode_barang']) ?>" onclick="navigator.clipboard.writeText(this.getAttribute('data-kode')); this.innerText='Tersalin!'; setTimeout(()=>this.innerText='Salin PN', 2000);" title="Salin Kode Part">
           Salin PN
         </button>
       </div>
     <?php endif; ?>
 
+    <?php if ($hasVariants): ?>
+      <div class="variant-pills variant-pills-detail" role="group" aria-label="Pilih merek">
+        <?php foreach ($variantData as $vi => $vd): ?>
+          <button type="button" class="variant-pill<?= $vi === 0 ? ' is-active' : '' ?>" data-variant="<?= $vi ?>"><?= e($vd['label']) ?></button>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
     <div class="price-box">
       <?php if ($priceFinal > 0): ?>
-        <div class="price-large"><?= rupiah($priceFinal) ?></div>
+        <div class="price-large" id="variantPrice"><?= rupiah($priceFinal) ?></div>
         <?php if ($hasDiscount): ?>
           <div class="price-original-large"><?= rupiah($priceOriginal) ?></div>
           <span class="discount-pill">Hemat <?= rupiah($priceOriginal - $priceFinal) ?></span>
         <?php endif; ?>
       <?php else: ?>
-        <div class="price-large">Tanya Harga</div>
+        <div class="price-large" id="variantPrice">Tanya Harga</div>
       <?php endif; ?>
     </div>
 
@@ -146,7 +192,7 @@ require __DIR__ . '/../templates/header.php';
       <table class="specs-table">
         <tbody>
           <?php if (!empty($product['merk'])): ?>
-            <tr><th>Merek Suku Cadang</th><td><?= e($product['merk']) ?></td></tr>
+            <tr id="specMerkRow"><th>Merek Suku Cadang</th><td id="variantMerk"><?= e($product['merk']) ?></td></tr>
           <?php endif; ?>
           <?php if (!empty($product['nama_mobil'])): ?>
             <tr><th>Kompatibilitas Kendaraan</th><td><?= e($product['nama_mobil']) ?></td></tr>
@@ -172,7 +218,7 @@ require __DIR__ . '/../templates/header.php';
     <!-- Action Buttons: WhatsApp & Marketplace -->
     <div class="product-actions-box">
       <?php if (!empty($cleanWa)): ?>
-        <a class="btn btn-primary btn-cta-wa" href="<?= e($waUrl) ?>" target="_blank" rel="noopener noreferrer">
+        <a class="btn btn-primary btn-cta-wa" id="variantWa" href="<?= e($waUrl) ?>" target="_blank" rel="noopener noreferrer">
           <span class="wa-btn-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
           <span>Pesan / Tanya via WhatsApp</span>
         </a>
@@ -310,6 +356,58 @@ foreach ($allProducts as $rp) {
   ],
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
+
+<?php if ($hasVariants): ?>
+<script>
+var VARIANT_DATA = <?= json_encode($variantData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+var PRODUCT_NAME = <?= json_encode($product['nama_produk'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
+// Pilih merk (produk gabungan): ganti harga, galeri, PN, merk, dan link WA.
+document.addEventListener('click', function (e) {
+  var pill = e.target.closest('.variant-pill');
+  if (!pill) return;
+  var idx = parseInt(pill.getAttribute('data-variant') || '0', 10);
+  var v = VARIANT_DATA[idx];
+  if (!v) return;
+  document.querySelectorAll('.variant-pill').forEach(function (b) { b.classList.remove('is-active'); });
+  pill.classList.add('is-active');
+  // PN + tombol salin
+  var pn = document.getElementById('pnCode');
+  if (pn) pn.textContent = v.kode_barang;
+  var copyBtn = document.getElementById('copyPnBtn');
+  if (copyBtn) copyBtn.setAttribute('data-kode', v.kode_barang);
+  // Harga
+  var priceEl = document.getElementById('variantPrice');
+  if (priceEl) priceEl.textContent = v.price_text;
+  // Merk di spek
+  var merkRow = document.getElementById('specMerkRow');
+  var merkTd = document.getElementById('variantMerk');
+  if (merkRow && merkTd) {
+    if (v.merk) { merkTd.textContent = v.merk; merkRow.style.display = ''; }
+    else { merkRow.style.display = 'none'; }
+  }
+  // Galeri
+  var gal = document.getElementById('variantGallery');
+  if (gal) {
+    if (v.images && v.images.length > 0) {
+      var html = '<div class="gallery-main"><img id="mainImage" src="' + v.images[0] + '" alt="' + PRODUCT_NAME.replace(/"/g, '&quot;') + '" fetchpriority="high"></div>';
+      if (v.images.length > 1) {
+        html += '<div class="product-gallery-thumbs">';
+        v.images.forEach(function (u, i) {
+          html += '<button type="button" class="thumb-btn' + (i === 0 ? ' is-active' : '') + '" onclick="document.getElementById(\'mainImage\').src=\'' + u + '\'; document.querySelectorAll(\'.thumb-btn\').forEach(b => b.classList.remove(\'is-active\')); this.classList.add(\'is-active\');" aria-label="Foto produk ' + (i + 1) + '"><img src="' + u + '" alt="" loading="lazy"></button>';
+        });
+        html += '</div>';
+      }
+      gal.innerHTML = html;
+    } else {
+      gal.innerHTML = '<div class="no-image large"><span class="no-image-icon" style="font-size: 3rem;" aria-hidden="true"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span style="margin-top: 12px; font-weight: 500;">Foto Produk Belum Diunggah</span></div>';
+    }
+  }
+  // WA
+  var wa = document.getElementById('variantWa');
+  if (wa && v.wa_url) wa.href = v.wa_url;
+});
+</script>
+<?php endif; ?>
 
 <?php
 require __DIR__ . '/../templates/footer.php';

@@ -619,6 +619,37 @@ h1, h2 {
 }
 
 /* ================================================================
+   VARIANT PILLS (Pilih Merek) - produk gabungan
+   ================================================================ */
+.variant-pills {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+.variant-pill {
+  font-family: var(--font-body); font-size: 0.82rem; font-weight: 600;
+  color: var(--ink-soft); background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  padding: 8px 16px; border-radius: var(--radius-pill);
+  min-height: 40px; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.variant-pill:hover {
+  border-color: var(--gold-deep); color: var(--gold-deep);
+}
+.variant-pill.is-active {
+  background: var(--gold-grad); color: #1B1405;
+  border-color: transparent; font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+.variant-pill:focus-visible {
+  outline: 2px solid var(--gold-deep); outline-offset: 2px;
+}
+.variant-pills-detail { margin: 0 0 18px; }
+.variant-pills-detail .variant-pill {
+  font-size: 0.9rem; padding: 10px 20px; min-height: 44px;
+}
+
+/* ================================================================
    BRAND EXPLORER (Quick Pills)
    ================================================================ */
 .brand-explorer-box {
