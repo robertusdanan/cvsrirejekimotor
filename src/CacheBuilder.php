@@ -103,6 +103,50 @@ final class CacheBuilder
         return $n;
     }
 
+    /**
+     * Jumlah baris bergambar yang "hilang" dari hitungan kartu karena merge.
+     * Dihitung dari BARIS LIVE (bukan dari varian di cache), karena varian
+     * digabung PER MERK: dua anggota bermerk sama dalam satu grup (mis.
+     * 48632-27010 + TE48632-27010, keduanya Terada) menjadi SATU varian di
+     * cache, padahal keduanya adalah baris live yang masing-masing
+     * bergambar. Menghitung dari varian cache mengecilkan reduksi 1 untuk
+     * grup seperti itu (bug 2026-11-19: expected_imaged 322 vs benar 321).
+     * Per grup: (anggota bergambar - 1) bila >= 2 anggota bergambar.
+     * $rows = daftar baris produk live (getProducts), masing-masing dengan
+     * 'kode_barang' + 'product_images'.
+     */
+    public static function imagedMergeReduction(array $rows): int
+    {
+        $byKode = [];
+        foreach ($rows as $r) {
+            $kode = trim((string) ($r['kode_barang'] ?? ''));
+            if ($kode !== '') {
+                $byKode[$kode] = $r;
+            }
+        }
+        $n = 0;
+        foreach (self::MERGE_GROUPS as $members) {
+            $k = 0;
+            foreach ($members as $kode) {
+                $row = $byKode[$kode] ?? null;
+                if ($row === null) {
+                    continue;
+                }
+                $imgs = is_array($row['product_images'] ?? null) ? $row['product_images'] : [];
+                foreach ($imgs as $im) {
+                    if (!empty($im['path'])) {
+                        $k++;
+                        break;
+                    }
+                }
+            }
+            if ($k > 1) {
+                $n += ($k - 1);
+            }
+        }
+        return $n;
+    }
+
     public function rebuildAll(): void
     {
         $errors = [];

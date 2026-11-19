@@ -69,30 +69,18 @@ $meta = $cache->read('_meta/products.json') ?? [];
 $cacheVersion = (int) ($meta['version'] ?? 0);
 $cacheUpdatedAt = $meta['updated_at'] ?? null;
 
-// --- Produk gabungan (varian): 19 baris Supabase -> 9 kartu kanonis ---
-// Cache menyimpan produk KANONIS (990), sedangkan Supabase menyimpan
-// 1000 baris. Selisihnya = jumlah redirect (slug lama -> slug kanonis).
-// Untuk gambar: bila 2 varian dalam 1 kartu sama-sama bergambar (mis.
-// DAIMARU + TOYOTA di 04465-0K100), live menghitung 2 baris bergambar
-// tapi cache menghitung 1 kartu bergambar. Reduksi = (varian bergambar - 1)
-// per kartu gabungan.
+// --- Produk gabungan (varian): 19 baris live -> 9 kartu kanonis ---
+// Cache menyimpan produk KANONIS (987), sedangkan live menyimpan
+// 997 baris. Selisihnya = mergeReduction (10), BUKAN jumlah redirect:
+// bila kode kanonis adalah bentuk OEM bersih yang bukan kode anggota
+// (mis. '8-94408-840-3'), semua anggota punya redirect sehingga
+// redirect > penggabungan (11 vs 10).
+// Untuk gambar, reduksi dihitung dari BARIS LIVE via
+// CacheBuilder::imagedMergeReduction() — JANGAN dari varian di cache,
+// karena varian digabung per merk (dua anggota bermerk sama jadi satu
+// varian; mis. 48632-27010 + TE48632-27010 keduanya Terada).
 $redirectData = $cache->read('products/redirects.json');
 $redirectCount = is_array($redirectData['redirects'] ?? null) ? count($redirectData['redirects']) : 0;
-$imagedReduction = 0;
-foreach ($indexItems as $it) {
-    if (empty($it['variants'])) {
-        continue;
-    }
-    $n = 0;
-    foreach ($it['variants'] as $v) {
-        if (!empty($v['primary_image'])) {
-            $n++;
-        }
-    }
-    if ($n > 1) {
-        $imagedReduction += ($n - 1);
-    }
-}
 
 // --- Baca live: Supabase products (+ product_images yang menempel) ---
 $writer = new MySQLWriter();
@@ -126,6 +114,7 @@ foreach ($rows as $r) {
 // yang bukan kode anggota (mis. '8-94408-840-3'), semua anggota punya
 // redirect sehingga redirect > penggabungan (11 vs 10) dan fresh jadi salah.
 $mergeReduction = CacheBuilder::mergeReduction();
+$imagedReduction = CacheBuilder::imagedMergeReduction($rows);
 $expectedProducts = $liveProducts - $mergeReduction;
 $expectedImaged = $liveImaged - $imagedReduction;
 $fresh = ($cacheProducts === $expectedProducts) && ($cacheImaged === $expectedImaged);
@@ -146,6 +135,7 @@ echo json_encode([
     'merged' => [
         'redirects' => $redirectCount,
         'merge_reduction' => $mergeReduction,
+        'imaged_reduction' => $imagedReduction,
         'expected_products' => $expectedProducts,
         'expected_imaged' => $expectedImaged,
     ],
