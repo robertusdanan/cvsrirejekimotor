@@ -137,6 +137,8 @@ if ($product === null) {
         'co-assy-diesel-31470-ok040' => 'co-assy-diesel-31470-0k040',
         'co-assy-reborn-diesel-31470-ok080' => 'co-assy-reborn-diesel-31470-0k080',
         'master-rem-bm-assy-reborn-matic-47201-ok240' => 'master-rem-bm-assy-reborn-matic-47201-0k240',
+        'master-kopling-bawah-co-assy-1-5-snc30620-00q0e' => 'master-kopling-bawah-co-assy-1-5-30620-00q0e',
+        'master-kopling-bawah-co-assy-sncme601290' => 'master-kopling-bawah-co-assy-me601290',
     ];
     if (!empty($legacyRedirects[$slug])) {
         header('Location: /produk/' . $legacyRedirects[$slug], true, 301);
