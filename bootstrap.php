@@ -213,6 +213,26 @@ if (!function_exists('heroManifest')) {
     }
 }
 
+if (!function_exists('saveHeroManifest')) {
+    /**
+     * Tulis manifest hero (sumber kebenaran homepage) ke
+     * ~/private/data/hero/manifest.json. Dipakai admin/hero.php.
+     */
+    function saveHeroManifest(array $data): bool
+    {
+        $path = heroManifestPath();
+        $dir = dirname($path);
+        if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+            return false;
+        }
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            return false;
+        }
+        return @file_put_contents($path, $json . "\n") !== false;
+    }
+}
+
 if (!function_exists('heroActiveSlides')) {
     function heroActiveSlides(): array
     {

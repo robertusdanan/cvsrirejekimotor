@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'nama_lain'   => trim($_POST['nama_lain'] ?? '') ?: null,
                     'merk'        => trim($_POST['merk'] ?? '') ?: null,
                     'category'    => trim($_POST['category'] ?? '') ?: null,
-                    'stok'        => (float) ($_POST['stok'] ?? 0),
+                    'stok'        => 0,
                     'harga_jual'  => (int) ($_POST['harga_jual'] ?? 0),
                     'description' => trim($_POST['description'] ?? '') ?: null,
                     'featured'    => isset($_POST['featured']) ? true : false,
@@ -132,10 +132,6 @@ require __DIR__ . '/templates/admin_header.php';
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Kategori</label>
                 <input type="text" name="category" placeholder="Contoh: Filter, Rem, Mesin, Kelistrikan" value="<?= htmlspecialchars($_POST['category'] ?? '') ?>" class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-amber-500 focus:ring-amber-500">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Stok Tersedia</label>
-                <input type="number" step="1" name="stok" value="<?= htmlspecialchars($_POST['stok'] ?? '10') ?>" class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-amber-500 focus:ring-amber-500 font-mono">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Harga Jual (Rp)</label>

@@ -191,7 +191,7 @@ final class MySQLWriter
     // PRODUCTS & PRODUCT IMAGES
     // =========================================================================
 
-    public function getProducts(?string $search = null): array
+    public function getProducts(?string $search = null, ?int $limit = null, int $offset = 0): array
     {
         $sql = 'SELECT id, kode_barang, nama_produk, nama_mobil, nama_lain, merk, category, ' .
             'stok, harga_jual, description, featured, sort_order, marketplaces, created_at, updated_at ' .
@@ -203,8 +203,19 @@ final class MySQLWriter
             $params = [$like, $like, $like];
         }
         $sql .= ' ORDER BY sort_order ASC, created_at DESC';
+        if ($limit !== null) {
+            $sql .= ' LIMIT ? OFFSET ?';
+        }
         $st = $this->pdo->prepare($sql);
-        $st->execute($params);
+        $i = 1;
+        foreach ($params as $p) {
+            $st->bindValue($i++, $p, PDO::PARAM_STR);
+        }
+        if ($limit !== null) {
+            $st->bindValue($i++, max(1, $limit), PDO::PARAM_INT);
+            $st->bindValue($i++, max(0, $offset), PDO::PARAM_INT);
+        }
+        $st->execute();
         $rows = $st->fetchAll();
         $grouped = $this->allImagesGrouped();
         $out = [];
@@ -212,6 +223,22 @@ final class MySQLWriter
             $out[] = $this->normalizeProduct($r, $grouped);
         }
         return $out;
+    }
+
+    /** Jumlah produk (untuk pagination) — pencarian yang sama seperti getProducts. */
+    public function countProducts(?string $search = null): int
+    {
+        $sql = 'SELECT COUNT(*) AS c FROM products';
+        $params = [];
+        if ($search !== null && $search !== '') {
+            $sql .= ' WHERE kode_barang LIKE ? OR nama_produk LIKE ? OR merk LIKE ?';
+            $like = '%' . $search . '%';
+            $params = [$like, $like, $like];
+        }
+        $st = $this->pdo->prepare($sql);
+        $st->execute($params);
+        $r = $st->fetch();
+        return (int) ($r['c'] ?? 0);
     }
 
     public function getProductByKode(string $kode): ?array

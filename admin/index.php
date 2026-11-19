@@ -6,11 +6,9 @@ $sw = dbWriter();
 $products = $sw->getProducts();
 
 $totalProduk = count($products);
-$totalStok = 0;
 $produkFeatured = 0;
 
 foreach ($products as $p) {
-    $totalStok += (float) ($p['stok'] ?? 0);
     if (!empty($p['featured'])) {
         $produkFeatured++;
     }
@@ -81,11 +79,6 @@ require __DIR__ . '/templates/admin_header.php';
         <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 admin-stat-label">Total Produk</div>
         <div class="mt-2 text-3xl font-extrabold text-slate-900 admin-stat-num"><?= number_format($totalProduk) ?></div>
         <div class="mt-1 text-xs text-slate-500">Tersimpan di MySQL Database</div>
-    </div>
-    <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 admin-stat-card">
-        <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 admin-stat-label">Total Stok Fisik</div>
-        <div class="mt-2 text-3xl font-extrabold text-amber-600 admin-stat-num"><?= number_format($totalStok) ?></div>
-        <div class="mt-1 text-xs text-slate-500">Unit item siap kirim</div>
     </div>
     <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 admin-stat-card">
         <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 admin-stat-label">Produk Unggulan</div>
