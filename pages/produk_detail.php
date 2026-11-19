@@ -140,6 +140,8 @@ if ($product === null) {
         'master-kopling-bawah-co-assy-1-5-snc30620-00q0e' => 'master-kopling-bawah-co-assy-1-5-30620-00q0e',
         'master-kopling-atas-cm-assy-14b-snc31420-26020' => 'master-kopling-atas-cm-assy-14b-31420-26020',
         'master-kopling-atas-cm-assy-dina-saurus-snc31420-37141' => 'master-kopling-atas-cm-assy-31420-37141',
+        'busi-k20hru11-ors-90919t1004' => 'busi-k20hru11-90919-t1004',
+        'busi-k20hru11-k20hru11denso' => 'busi-k20hru11-90919-t1004',
         'master-kopling-atas-cm-assy-dina-saurus-31420-37141' => 'master-kopling-atas-cm-assy-31420-37141',
         'master-kopling-atas-cm-assy-sncmc113030' => 'master-kopling-atas-cm-assy-mc113030',
         'master-kopling-atas-cm-assy-sncme507832' => 'master-kopling-atas-cm-assy-ors-me507832',

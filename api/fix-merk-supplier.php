@@ -63,7 +63,7 @@ try {
         $st = $pdo->prepare('SELECT COUNT(*) FROM brands WHERE LOWER(name) = LOWER(?)');
         $st->execute([$nama]);
         if ((int)$st->fetchColumn() === 0) {
-            $st = $pdo->prepare('INSERT INTO brands (name, sort_order) VALUES (?, ?)');
+            $st = $pdo->prepare('INSERT INTO brands (id, name, sort_order) VALUES (UUID(), ?, ?)');
             $st->execute([$nama, $sort]);
             $out['brands_disisp'] = ($out['brands_disisp'] ?? 0) + $st->rowCount();
         }
