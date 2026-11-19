@@ -149,7 +149,7 @@ function runImport(MySQLWriter $sw): array
         throw new RuntimeException('Tidak ada produk yang bisa di-import (semua baris kosong/tidak aktif).');
     }
 
-    // --- Produk yang sudah ada di Supabase (untuk hitung baru vs update + jaga stok) ---
+    // --- Produk yang sudah ada di MySQL (untuk hitung baru vs update + jaga stok) ---
     $existing = [];
     foreach ($sw->getProducts() as $p) {
         if (!empty($p['kode_barang'])) {
@@ -205,7 +205,7 @@ function runImport(MySQLWriter $sw): array
                 if ($one === null) {
                     $failed++;
                     if (count($errors) < 20) {
-                        $errors[] = 'Kode ' . $single['kode_barang'] . ': gagal disimpan ke Supabase.';
+                        $errors[] = 'Kode ' . $single['kode_barang'] . ': gagal disimpan ke MySQL.';
                     }
                 }
             }
@@ -287,7 +287,7 @@ require __DIR__ . '/templates/admin_header.php';
 
 <div class="mb-6">
     <h1 class="text-2xl font-bold text-slate-800">Import Produk Massal</h1>
-    <p class="text-sm text-slate-500">Import katalog dari export Accurate (.xlsx) ke Supabase, lalu cache website di-rebuild otomatis.</p>
+    <p class="text-sm text-slate-500">Import katalog dari export Accurate (.xlsx) ke MySQL, lalu cache website di-rebuild otomatis.</p>
 </div>
 
 <?php if ($error !== null): ?>

@@ -3,7 +3,7 @@ require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 Auth::requireSuperAdmin();
 
-$client = supabaseAdminUsers();
+$client = adminUsers();
 $flash = null;
 $error = null;
 
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (Throwable $e) {
         error_log('users.php: ' . $e->getMessage());
-        $error = 'Gagal menghubungi Supabase: ' . $e->getMessage();
+        $error = 'Gagal menghubungi MySQL: ' . $e->getMessage();
     }
 }
 
@@ -102,7 +102,7 @@ try {
 } catch (Throwable $e) {
     error_log('users.php: ' . $e->getMessage());
     $users = [];
-    $error = $error ?? ('Gagal memuat daftar pengguna dari Supabase: ' . $e->getMessage());
+    $error = $error ?? ('Gagal memuat daftar pengguna dari MySQL: ' . $e->getMessage());
 }
 
 require __DIR__ . '/templates/admin_header.php';

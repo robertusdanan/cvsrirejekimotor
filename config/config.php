@@ -113,8 +113,7 @@ $envPath = privateDir() . '/.env';
 // (hanya bila folder private/ sudah ada — jangan pernah membuat folder
 //  private/ di sembarang tempat).
 if (!is_file($envPath) && is_dir(privateDir())) {
-    $defaultEnvContent = "SUPABASE_URL=https://tnmatvbvbaffqbzilxoz.supabase.co\n"
-        . "R2_PUBLIC_URL=https://pub-7ce4b96396f24d399964a0f6f76805a7.r2.dev\n"
+    $defaultEnvContent = "R2_PUBLIC_URL=https://pub-7ce4b96396f24d399964a0f6f76805a7.r2.dev\n"
         . "R2_BUCKET=sri-rejeki-motor\n"
         . "COOKIE_SECURE=true\n";
     @file_put_contents($envPath, $defaultEnvContent);
@@ -134,7 +133,6 @@ function config(string $key, $default = null)
     // Production fallbacks to prevent 500 error if .env is missing key
     // NOTE: DEPLOY_WEBHOOK_TOKEN is intentionally NOT listed here: no fallback, ever.
     $defaults = [
-        'SUPABASE_URL'         => 'https://tnmatvbvbaffqbzilxoz.supabase.co',
         'R2_PUBLIC_URL'        => 'https://pub-7ce4b96396f24d399964a0f6f76805a7.r2.dev',
         'R2_BUCKET'            => 'sri-rejeki-motor',
         'COOKIE_SECURE'        => 'true',

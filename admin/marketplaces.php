@@ -2,7 +2,7 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $flash = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && Auth::verifyCsrf($_POST['csrf'] ?? null)) {
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Auth::verifyCsrf($_POST['csrf'] ?? 
 
     $sw->saveMarketplaces($items);
     cacheBuilder()->rebuildMarketplaces();
-    $flash = 'Daftar marketplace berhasil diperbarui di Supabase!';
+    $flash = 'Daftar marketplace berhasil diperbarui di MySQL!';
 }
 
 $marketplacesData = $sw->getMarketplaces();
@@ -43,7 +43,7 @@ require __DIR__ . '/templates/admin_header.php';
 <div class="mb-6 flex items-center justify-between">
     <div>
         <h1 class="text-2xl font-bold text-slate-800">Kelola Marketplace</h1>
-        <p class="text-sm text-slate-500">Atur link toko online resmi (Tokopedia, Shopee, Bukalapak, TikTok Shop) di Supabase.</p>
+        <p class="text-sm text-slate-500">Atur link toko online resmi (Tokopedia, Shopee, Bukalapak, TikTok Shop) di MySQL.</p>
     </div>
 </div>
 

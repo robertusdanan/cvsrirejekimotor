@@ -107,8 +107,8 @@ require __DIR__ . '/../templates/header.php';
     <div class="pill-group">
       <span class="pill-label">Merek Populer:</span>
       <div class="pill-list">
-        <?php foreach (array_slice($brands, 0, 10) as $b): ?>
-          <a href="/produk?merk=<?= urlencode($b) ?>" class="tag-pill"><?= e($b) ?></a>
+        <?php foreach (array_slice($brands, 0, 10) as $b): $bv = is_array($b) ? (string) ($b['value'] ?? '') : (string) $b; $bl = is_array($b) ? (string) ($b['name'] ?? $bv) : $bv; ?>
+          <a href="/produk?merk=<?= urlencode($bv) ?>" class="tag-pill"><?= e($bl) ?></a>
         <?php endforeach; ?>
       </div>
     </div>
@@ -118,8 +118,8 @@ require __DIR__ . '/../templates/header.php';
     <div class="pill-group" style="margin-top: 14px;">
       <span class="pill-label">Kategori Suku Cadang:</span>
       <div class="pill-list">
-        <?php foreach (array_slice($categories, 0, 10) as $c): ?>
-          <a href="/produk?kategori=<?= urlencode($c) ?>" class="tag-pill tag-pill-alt"><?= e($c) ?></a>
+        <?php foreach (array_slice($categories, 0, 10) as $c): $cv = is_array($c) ? (string) ($c['value'] ?? '') : (string) $c; $cl = is_array($c) ? (string) ($c['name'] ?? $cv) : $cv; ?>
+          <a href="/produk?kategori=<?= urlencode($cv) ?>" class="tag-pill tag-pill-alt"><?= e($cl) ?></a>
         <?php endforeach; ?>
       </div>
     </div>

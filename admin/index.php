@@ -2,7 +2,7 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $products = $sw->getProducts();
 
 $totalProduk = count($products);
@@ -16,7 +16,7 @@ foreach ($products as $p) {
     }
 }
 
-// Status kesegaran cache (2026-11-18): bandingkan data LIVE (Supabase)
+// Status kesegaran cache (2026-11-18): bandingkan data LIVE (MySQL)
 // dengan yang tersimpan di cache publik. Bila angkanya sama -> cache segar;
 // bila beda -> cache basi dan perlu Refresh. Angka live dihitung dari
 // $products yang sudah dimuat di atas (tanpa query tambahan).
@@ -59,7 +59,7 @@ require __DIR__ . '/templates/admin_header.php';
 
 <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 mb-8">
     <h2 class="text-lg font-bold text-slate-800 mb-2">Cache Situs Publik</h2>
-    <p class="text-sm text-slate-500 mb-4">Perubahan data/gambar di admin seharusnya memperbarui cache otomatis. Bila situs masih menampilkan data lama, tekan tombol ini untuk membangun ulang seluruh cache dari Supabase.</p>
+    <p class="text-sm text-slate-500 mb-4">Perubahan data/gambar di admin seharusnya memperbarui cache otomatis. Bila situs masih menampilkan data lama, tekan tombol ini untuk membangun ulang seluruh cache dari MySQL.</p>
     <?php if ($cacheFresh): ?>
         <div class="mb-4 rounded-lg bg-emerald-50 p-3 border border-emerald-200 text-emerald-800 text-sm">
             <strong>Cache segar.</strong> Live: <?= number_format($totalProduk) ?> produk (<?= number_format($liveWithImages) ?> bergambar) — Cache: <?= number_format(count($cacheItems)) ?> produk (<?= number_format($cacheWithImages) ?> bergambar).<?php if ($cacheUpdatedAt): ?> Terakhir rebuild: <?= htmlspecialchars($cacheUpdatedAt) ?>.<?php endif; ?>
@@ -80,7 +80,7 @@ require __DIR__ . '/templates/admin_header.php';
     <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 admin-stat-card">
         <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 admin-stat-label">Total Produk</div>
         <div class="mt-2 text-3xl font-extrabold text-slate-900 admin-stat-num"><?= number_format($totalProduk) ?></div>
-        <div class="mt-1 text-xs text-slate-500">Tersimpan di Supabase Database</div>
+        <div class="mt-1 text-xs text-slate-500">Tersimpan di MySQL Database</div>
     </div>
     <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200 admin-stat-card">
         <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 admin-stat-label">Total Stok Fisik</div>

@@ -2,10 +2,10 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $q = trim($_GET['q'] ?? '');
 
-// Menghapus produk dari Supabase & Cloudflare R2
+// Menghapus produk dari MySQL & Cloudflare R2
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     if (Auth::verifyCsrf($_POST['csrf'] ?? null)) {
         $id = trim($_POST['id'] ?? '');
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         }
                     }
                 }
-                // Delete product from Supabase
+                // Delete product from MySQL
                 $sw->deleteProduct($product['id']);
             }
             // Rebuild cache publik (aman). Bila gagal, beri tahu lewat
@@ -44,7 +44,7 @@ require __DIR__ . '/templates/admin_header.php';
 <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-800">Daftar Produk</h1>
-        <p class="text-sm text-slate-500">Kelola katalog produk, stok, dan harga langsung di Supabase.</p>
+        <p class="text-sm text-slate-500">Kelola katalog produk, stok, dan harga langsung di MySQL.</p>
     </div>
     <div class="flex flex-wrap gap-2">
     <a href="/admin/products_import.php" class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition">
@@ -64,7 +64,7 @@ require __DIR__ . '/templates/admin_header.php';
 
 <?php if (isset($_GET['deleted'])): ?>
     <div class="mb-6 rounded-lg bg-emerald-50 p-4 border border-emerald-200 text-emerald-800 text-sm">
-        Produk berhasil dihapus dari Supabase dan Cloudflare R2!
+        Produk berhasil dihapus dari MySQL dan Cloudflare R2!
     </div>
 <?php endif; ?>
 

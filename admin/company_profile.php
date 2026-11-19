@@ -2,7 +2,7 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $flash = null;
 $error = null;
 
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Auth::verifyCsrf($_POST['csrf'] ?? 
 
     $sw->saveCompanyProfile($profileData);
     cacheBuilder()->rebuildCompany();
-    $flash = 'Profil perusahaan berhasil diperbarui di Supabase!';
+    $flash = 'Profil perusahaan berhasil diperbarui di MySQL!';
 }
 
 $p = $sw->getCompanyProfile();
@@ -37,7 +37,7 @@ require __DIR__ . '/templates/admin_header.php';
 <div class="mb-6 flex items-center justify-between">
     <div>
         <h1 class="text-2xl font-bold text-slate-800">Profil Perusahaan</h1>
-        <p class="text-sm text-slate-500">Kelola identitas usaha, alamat, kontak WhatsApp, dan jam operasional di Supabase.</p>
+        <p class="text-sm text-slate-500">Kelola identitas usaha, alamat, kontak WhatsApp, dan jam operasional di MySQL.</p>
     </div>
 </div>
 

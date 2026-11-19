@@ -12,7 +12,7 @@
  *  3. Klik "Mulai Import Gambar".
  *
  * Aturan:
- *  - Produk yang tidak ditemukan di Supabase dilewati (tercantum di laporan).
+ *  - Produk yang tidak ditemukan di MySQL dilewati (tercantum di laporan).
  *  - Produk yang SUDAH punya gambar dilewati, KECUALI opsi "Timpa gambar
  *    yang sudah ada" dicentang (gambar lama dihapus dari R2 lalu diganti).
  *  - Gambar dikonversi ke WebP (thumbnail/medium/large/original) dan
@@ -208,7 +208,7 @@ function runImagesImport(MySQLWriter $sw): array
             } catch (Throwable $e) {
                 $stats['failed']++;
                 if (count($errors) < 20) {
-                    $errors[] = $product['kode'] . ': gagal menyimpan ke Supabase.';
+                    $errors[] = $product['kode'] . ': gagal menyimpan ke MySQL.';
                 }
             }
             unset($ok);

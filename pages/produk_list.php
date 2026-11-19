@@ -81,6 +81,27 @@ if ($q !== '') {
         . ' — onderdil original/OEM, harga bersaing, kirim ke seluruh Indonesia. Tanya stok via WhatsApp.';
 }
 
+// Urutan tampil: produk BERGAMBAR dulu, lalu yang belum bergambar; di dalam
+// tiap kelompok urutan DIACAK (seed = tanggal + filter, supaya paginasi
+// stabil dalam sehari tapi urutan berubah tiap hari — katalog terlihat segar
+// dan bukan urutan yang itu-itu saja).
+$filtered = array_values($filtered);
+$withPhoto = [];
+$withoutPhoto = [];
+foreach ($filtered as $p) {
+    $hasPhoto = !empty($p['primary_image']) || !empty($p['images']);
+    if ($hasPhoto) {
+        $withPhoto[] = $p;
+    } else {
+        $withoutPhoto[] = $p;
+    }
+}
+$shuffleSeed = (int) crc32(date('Y-m-d') . '|' . $q . '|' . $brand . '|' . $vehicle . '|' . $category);
+mt_srand($shuffleSeed);
+shuffle($withPhoto);
+shuffle($withoutPhoto);
+$filtered = array_merge($withPhoto, $withoutPhoto);
+
 // Paginasi: 24 produk per halaman (1.000 kartu sekaligus terlalu berat)
 $totalFiltered = count($filtered);
 $perPage = 24;

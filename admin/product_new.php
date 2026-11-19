@@ -2,7 +2,7 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($existing) {
                 $error = "Kode barang '{$kode}' sudah digunakan oleh produk lain.";
             } else {
-                // Prepare product data for Supabase
+                // Prepare product data for MySQL
                 $prodData = [
                     'kode_barang' => $kode,
                     'nama_produk' => $nama,
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $created = $sw->upsertProduct($prodData);
                 if (!$created || empty($created['id'])) {
-                    $error = 'Gagal menyimpan produk ke Supabase database.';
+                    $error = 'Gagal menyimpan produk ke MySQL database.';
                 } else {
                     $productId = $created['id'];
 

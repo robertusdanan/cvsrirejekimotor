@@ -5,7 +5,7 @@ Auth::requireLogin();
 $flash = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && Auth::verifyCsrf($_POST['csrf'] ?? null)) {
     cacheBuilder()->rebuildAll();
-    $flash = 'Seluruh cache publik berhasil diperbarui dari Supabase Database!';
+    $flash = 'Seluruh cache publik berhasil diperbarui dari MySQL Database!';
 }
 
 $pageTitle = 'Sinkronisasi Cache';
@@ -14,7 +14,7 @@ require __DIR__ . '/templates/admin_header.php';
 
 <div class="mb-6">
     <h1 class="text-2xl font-bold text-slate-800">Sinkronisasi Cache Website</h1>
-    <p class="text-sm text-slate-500">Regenerasi file JSON publik dari Supabase Database.</p>
+    <p class="text-sm text-slate-500">Regenerasi file JSON publik dari MySQL Database.</p>
 </div>
 
 <?php if ($flash): ?>

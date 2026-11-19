@@ -2,7 +2,7 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $flash = null;
 $error = null;
 
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Auth::verifyCsrf($_POST['csrf'] ?? 
 
     $sw->saveHeroSlides($slides);
     cacheBuilder()->rebuildHero();
-    $flash = 'Banner / Video Hero berhasil diperbarui di Supabase!';
+    $flash = 'Banner / Video Hero berhasil diperbarui di MySQL!';
 }
 
 $slides = $sw->getHeroSlides();
