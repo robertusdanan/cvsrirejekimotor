@@ -95,7 +95,9 @@ final class ImageHandler
             }
 
             // Store the original too (re-encoded, not the raw untrusted upload bytes).
-            self::uploadResized($r2, $source, PHP_INT_MAX, "products/{$productKey}/original/{$id}.webp", 90);
+            // SUPER-KOMPRES (per Danan 2026-11-19): original dibatasi 1600px + q80
+            // (dulu tanpa batas + q90) supaya hemat penyimpanan R2.
+            self::uploadResized($r2, $source, 1600, "products/{$productKey}/original/{$id}.webp", 80);
             $paths['original'] = "products/{$productKey}/original/{$id}.webp";
         } finally {
             imagedestroy($source);

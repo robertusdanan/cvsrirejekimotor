@@ -181,7 +181,7 @@ require __DIR__ . '/../templates/header.php';
           $cardWaUrl = $cleanWa !== '' ? 'https://wa.me/' . $cleanWa . '?text=' . urlencode($cardWaText) : '';
           // Data varian (pilih merk) untuk pill + JS: harga, gambar, PN, WA per merk.
           $variants = $p['variants'] ?? [];
-          $hasVariants = !empty($variants);
+          $hasVariants = count($variants) > 1; // 1 varian = produk tunggal, pill tidak perlu
           $variantData = [];
           foreach ($variants as $v) {
               $vPrice = (int) ($v['harga_jual'] ?? 0);
@@ -203,11 +203,11 @@ require __DIR__ . '/../templates/header.php';
         ?>
         <article class="product-card reveal" style="--reveal-delay: <?= min($i % 8, 7) * 0.04 ?>s">
           <a class="product-card-image" href="/produk/<?= e($p['slug']) ?>" aria-label="<?= e($p['nama_produk']) ?>">
-            <img class="variant-img" src="<?= !empty($p['primary_image']) ? e(mediaUrl($p['primary_image'])) : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' ?>" alt="<?= e($p['nama_produk']) ?>" loading="lazy"<?= !empty($p['primary_image']) ? '' : ' style="display:none"' ?>>
-            <div class="no-image variant-noimg"<?= !empty($p['primary_image']) ? ' style="display:none"' : '' ?>>
-              <span class="no-image-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-              <span>Foto Belum Tersedia</span>
-            </div>
+            <?php if (!empty($p['primary_image'])): ?>
+            <img class="variant-img" src="<?= e(mediaUrl($p['primary_image'])) ?>" alt="<?= e($p['nama_produk']) ?>" loading="lazy">
+            <?php else: ?>
+            <img class="variant-img logo-fallback" src="/assets/img/logo.webp" alt="CV Sri Rejeki Motor" loading="lazy">
+            <?php endif; ?>
 
             <?php if ($hasDiscount): ?>
               <span class="card-badge card-badge-promo">PROMO</span>
@@ -311,13 +311,10 @@ document.addEventListener('click', function (e) {
   var priceEl = card.querySelector('.variant-price');
   if (priceEl) priceEl.textContent = priceText;
   var img = card.querySelector('.variant-img');
-  var noimg = card.querySelector('.variant-noimg');
-  if (imgUrl) {
-    if (img) { img.src = imgUrl; img.style.display = ''; }
-    if (noimg) noimg.style.display = 'none';
-  } else {
-    if (img) img.style.display = 'none';
-    if (noimg) noimg.style.display = '';
+  if (img) {
+    if (imgUrl) { img.src = imgUrl; img.classList.remove('logo-fallback'); }
+    else { img.src = '/assets/img/logo.webp'; img.classList.add('logo-fallback'); }
+    img.style.display = '';
   }
   var wa = card.querySelector('.variant-wa');
   if (wa && waUrl) wa.href = waUrl;

@@ -9,6 +9,16 @@ if ($product === null) {
         header('Location: /produk/' . $redirects[$slug], true, 301);
         exit;
     }
+    // Slug lama dari 2 baris duplikat yang dihapus dari DB (Danan 2026-11-19):
+    // 8-94223-366-TE dan TEMT-141213 — tetap 301 ke slug kanonis.
+    $legacyRedirects = [
+        'bosh-lower-arm-te-8-94223-366-te' => 'bos-lower-arm-te-8-94223-366te',
+        'bosh-lower-arm-te-temt-141213' => 'bos-lower-arm-te-mt141213',
+    ];
+    if (!empty($legacyRedirects[$slug])) {
+        header('Location: /produk/' . $legacyRedirects[$slug], true, 301);
+        exit;
+    }
     http_response_code(404);
     require __DIR__ . '/not_found.php';
     return;
@@ -40,7 +50,7 @@ $waUrl = "https://wa.me/{$cleanWa}?text=" . urlencode($waText);
 
 // Data varian (pilih merk) untuk pill + JS: harga, galeri, PN, merk, WA per merk.
 $variants = $product['variants'] ?? [];
-$hasVariants = !empty($variants);
+$hasVariants = count($variants) > 1; // 1 varian = produk tunggal, pill tidak perlu
 $variantData = [];
 foreach ($variants as $v) {
     $vPrice = (int) ($v['harga_jual'] ?? 0);
@@ -115,9 +125,8 @@ require __DIR__ . '/../templates/header.php';
       </div>
       <?php endif; ?>
     <?php else: ?>
-      <div class="no-image large">
-        <span class="no-image-icon" style="font-size: 3rem;" aria-hidden="true"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-        <span style="margin-top: 12px; font-weight: 500;">Foto Produk Belum Diunggah</span>
+      <div class="gallery-main">
+        <img class="logo-fallback" src="/assets/img/logo.webp" alt="CV Sri Rejeki Motor" fetchpriority="high">
       </div>
     <?php endif; ?>
     </div>
@@ -293,10 +302,7 @@ foreach ($allProducts as $rp) {
           <?php if (!empty($p['primary_image'])): ?>
             <img src="<?= e(mediaUrl($p['primary_image'])) ?>" alt="<?= e($p['nama_produk']) ?>" loading="lazy">
           <?php else: ?>
-            <div class="no-image">
-              <span class="no-image-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-              <span>Foto Belum Tersedia</span>
-            </div>
+            <img class="logo-fallback" src="/assets/img/logo.webp" alt="CV Sri Rejeki Motor" loading="lazy">
           <?php endif; ?>
         </a>
         <div class="product-card-body">
@@ -399,7 +405,7 @@ document.addEventListener('click', function (e) {
       }
       gal.innerHTML = html;
     } else {
-      gal.innerHTML = '<div class="no-image large"><span class="no-image-icon" style="font-size: 3rem;" aria-hidden="true"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span style="margin-top: 12px; font-weight: 500;">Foto Produk Belum Diunggah</span></div>';
+      gal.innerHTML = '<div class="gallery-main"><img class="logo-fallback" src="/assets/img/logo.webp" alt="CV Sri Rejeki Motor"></div>';
     }
   }
   // WA
