@@ -30,7 +30,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../config/config.php';
 require __DIR__ . '/../src/Cache.php';
-require __DIR__ . '/../src/SupabaseWriter.php';
+require __DIR__ . '/../src/MySQLWriter.php';
 require __DIR__ . '/../src/CacheBuilder.php';
 require __DIR__ . '/../src/R2WriteClient.php';
 require __DIR__ . '/../src/ImageHandler.php';
@@ -60,7 +60,7 @@ if (!hash_equals($expected, (string) $provided)) {
     fail(401, 'unauthorized');
 }
 
-$writer = new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+$writer = new MySQLWriter();
 
 // --- Aksi rebuild saja (dipakai script batch di akhir) ---
 if (($_POST['action'] ?? '') === 'rebuild') {

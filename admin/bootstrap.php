@@ -8,10 +8,9 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 // ~/private/.env (lihat config/config.php).
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../src/Database.php';
-require_once __DIR__ . '/../src/SupabaseAdminUsers.php';
+require_once __DIR__ . '/../src/MySQLAdminUsers.php';
 require_once __DIR__ . '/../src/Auth.php';
-require_once __DIR__ . '/../src/Supabase.php';
-require_once __DIR__ . '/../src/SupabaseWriter.php';
+require_once __DIR__ . '/../src/MySQLWriter.php';
 require_once __DIR__ . '/../src/XlsxReader.php';
 require_once __DIR__ . '/../src/Cache.php';
 require_once __DIR__ . '/../src/CacheBuilder.php';
@@ -27,23 +26,23 @@ if (!function_exists('db')) {
     }
 }
 
-if (!function_exists('supabaseWriter')) {
-    function supabaseWriter(): SupabaseWriter
+if (!function_exists('dbWriter')) {
+    function dbWriter(): MySQLWriter
     {
         static $writer = null;
         if ($writer === null) {
-            $writer = new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+            $writer = new MySQLWriter();
         }
         return $writer;
     }
 }
 
-if (!function_exists('supabaseAdminUsers')) {
-    function supabaseAdminUsers(): SupabaseAdminUsers
+if (!function_exists('adminUsers')) {
+    function adminUsers(): MySQLAdminUsers
     {
         static $client = null;
         if ($client === null) {
-            $client = new SupabaseAdminUsers(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+            $client = new MySQLAdminUsers();
         }
         return $client;
     }
@@ -54,7 +53,7 @@ if (!function_exists('cacheBuilder')) {
     {
         static $builder = null;
         if ($builder === null) {
-            $builder = new CacheBuilder(supabaseWriter());
+            $builder = new CacheBuilder(dbWriter());
         }
         return $builder;
     }
@@ -62,7 +61,7 @@ if (!function_exists('cacheBuilder')) {
 
 if (!function_exists('safeRebuildProduct')) {
     // Rebuild cache produk TANPA menggagalkan halaman admin bila rebuild
-    // gagal (mis. Supabase lambat / timeout). Mengembalikan true bila cache
+    // gagal (mis. PostgreSQL lambat / timeout). Mengembalikan true bila cache
     // berhasil diperbarui, false bila gagal — pemanggil WAJIB menampilkan
     // $GLOBALS['cacheRebuildWarning'] ke admin supaya kegagalan terlihat,
     // bukan diam-diam (dulu: rebuild gagal = cache situs tetap lama tanpa
@@ -97,7 +96,7 @@ if (!function_exists('safeRebuildAllProducts')) {
             return true;
         } catch (Throwable $e) {
             error_log('Full product cache rebuild failed: ' . $e->getMessage());
-            $GLOBALS['cacheRebuildWarning'] = 'Data tersimpan ke Supabase, tetapi cache produk belum diperbarui: ' . $e->getMessage() . ' '
+            $GLOBALS['cacheRebuildWarning'] = 'Data tersimpan ke PostgreSQL, tetapi cache produk belum diperbarui: ' . $e->getMessage() . ' '
                 . 'Coba "Refresh Semua Cache" di Dashboard beberapa saat lagi.';
             return false;
         }

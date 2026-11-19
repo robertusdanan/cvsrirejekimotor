@@ -48,7 +48,7 @@ final class CacheBuilder
     public $cache;
 
     public function __construct(
-        SupabaseWriter $writer,
+        MySQLWriter $writer,
         ?Cache $cache = null
     ) {
         $this->writer = $writer;
@@ -72,11 +72,9 @@ final class CacheBuilder
      */
     private const MERGE_GROUPS = [
         'MB109936' => ['MB109936', 'TE-MB109936', 'TEMB-109936'],
-        '8-94223-366TE' => ['8-94223-366TE', '8-94223-366-TE'],
         '04465-0K100' => ['04465-0K100', '044650K100'],
         '04495-0K040' => ['04495-0K040', '044950K040'],
         'MB489484' => ['MB489484', 'TEMB489484'],
-        'MT141213' => ['MT141213', 'TEMT-141213'],
         '48632-27010' => ['48632-27010', 'TE48632-27010'],
         'GAPMW030499' => ['GAPMW030499', 'GWMW030499'],
         'MH024000' => ['MH024000', 'GAPMH024000'],
@@ -577,18 +575,12 @@ final class CacheBuilder
     private function readTaxonomyTable(string $table, string $cols): array
     {
         try {
-            $res = $this->writer->request(
-                'GET',
-                '/rest/v1/' . $table . '?select=' . $cols . '&order=sort_order.asc,name.asc&limit=1000'
-            );
+            $res = $this->writer->getTaxonomyTable($table, $cols);
         } catch (Throwable $e) {
             error_log('taxonomy read ' . $table . ' gagal: ' . $e->getMessage());
             return [];
         }
-        if (!is_array($res) || isset($res['message']) || isset($res['error']) || !array_is_list($res)) {
-            return [];
-        }
-        return $res;
+        return is_array($res) ? $res : [];
     }
 
     /** Gabungkan hitungan produk dengan baris registry (nama resmi + urutan). */
@@ -646,12 +638,7 @@ final class CacheBuilder
             if ($missing === []) {
                 return;
             }
-            $this->writer->request(
-                'POST',
-                '/rest/v1/' . $table . '?on_conflict=name',
-                $missing,
-                ['Prefer: return=minimal,resolution=merge-duplicates']
-            );
+            $this->writer->upsertTaxonomyRows($table, $missing);
         } catch (Throwable $e) {
             error_log('taxonomy sync ' . $table . ' gagal: ' . $e->getMessage());
         }

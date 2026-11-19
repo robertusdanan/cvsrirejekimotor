@@ -25,7 +25,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../config/config.php';
 require __DIR__ . '/../src/Cache.php';
-require __DIR__ . '/../src/SupabaseWriter.php';
+require __DIR__ . '/../src/MySQLWriter.php';
 
 header('Content-Type: application/json');
 
@@ -94,7 +94,7 @@ foreach ($indexItems as $it) {
 }
 
 // --- Baca live: Supabase products (+ product_images yang menempel) ---
-$writer = new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+$writer = new MySQLWriter();
 try {
     $rows = $writer->getProducts();
 } catch (Throwable $e) {

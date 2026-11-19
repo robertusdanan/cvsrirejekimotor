@@ -88,10 +88,10 @@ if (!function_exists('privatePath')) {
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/src/Cache.php';
 require_once __DIR__ . '/src/R2WriteClient.php';
-// SupabaseWriter + StatistikKunjungan: require kondisional + stub,
+// MySQLWriter + StatistikKunjungan: require kondisional + stub,
 // supaya footer tetap tampil (0/0) bila file sedang bermasalah.
-if (is_file(__DIR__ . '/src/SupabaseWriter.php')) {
-    require_once __DIR__ . '/src/SupabaseWriter.php';
+if (is_file(__DIR__ . '/src/MySQLWriter.php')) {
+    require_once __DIR__ . '/src/MySQLWriter.php';
 }
 if (is_file(__DIR__ . '/src/StatistikKunjungan.php')) {
     require_once __DIR__ . '/src/StatistikKunjungan.php';

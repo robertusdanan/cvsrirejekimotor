@@ -28,20 +28,20 @@ final class Auth
 
     public static $adminUsers = null;
 
-    private static function adminUsers(): SupabaseAdminUsers
+    private static function adminUsers(): MySQLAdminUsers
     {
         if (self::$adminUsers === null) {
-            self::$adminUsers = new SupabaseAdminUsers(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+            self::$adminUsers = new MySQLAdminUsers();
         }
         return self::$adminUsers;
     }
 
-    /** Shared Supabase REST client for login_throttle / admin_audit_log (see supabase_schema_v3.sql). */
-    private static function writer(): SupabaseWriter
+    /** Shared PostgreSQL client for login_throttle / admin_audit_log. */
+    private static function writer(): MySQLWriter
     {
         static $writer = null;
         if ($writer === null) {
-            $writer = new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+            $writer = new MySQLWriter();
         }
         return $writer;
     }
@@ -49,13 +49,12 @@ final class Auth
     public static function attempt(string $username, string $password): bool
     {
         // Login accounts, the per-IP brute-force throttle (login_throttle) and the
-        // audit log (admin_audit_log) all live in Supabase now — no local storage.
+        // audit log (admin_audit_log) all live in PostgreSQL now — no local storage.
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
         $row = null;
         try {
-            $rows = self::writer()->request('GET', '/rest/v1/login_throttle?ip=eq.' . rawurlencode($ip) . '&select=attempts,locked_until&limit=1');
-            $row = $rows[0] ?? null;
+            $row = self::writer()->getLoginThrottle($ip);
         } catch (Throwable $e) {
             // Throttle table unreachable: fail open on the throttle check only,
             // the password check below still applies.
@@ -70,7 +69,7 @@ final class Auth
         try {
             $user = self::adminUsers()->findByUsername($username);
         } catch (Throwable $e) {
-            error_log('Auth::attempt: Supabase lookup failed: ' . $e->getMessage());
+            error_log('Auth::attempt: PostgreSQL lookup failed: ' . $e->getMessage());
             usleep(300000);
             return false; // fail closed if Supabase is unreachable
         }
@@ -82,12 +81,7 @@ final class Auth
                 ? gmdate('Y-m-d\TH:i:s\Z', time() + self::LOCKOUT_SECONDS)
                 : null;
             try {
-                self::writer()->request('POST', '/rest/v1/login_throttle?on_conflict=ip', [
-                    'ip'           => $ip,
-                    'attempts'     => $attempts,
-                    'locked_until' => $lockedUntil,
-                    'updated_at'   => gmdate('Y-m-d\TH:i:s\Z'),
-                ], ['Prefer: resolution=merge-duplicates']);
+                self::writer()->saveLoginThrottle($ip, $attempts, $lockedUntil);
             } catch (Throwable $e) {
                 error_log('Auth::attempt: throttle update failed: ' . $e->getMessage());
             }
@@ -96,7 +90,7 @@ final class Auth
 
         // Successful login resets the throttle counter.
         try {
-            self::writer()->request('DELETE', '/rest/v1/login_throttle?ip=eq.' . rawurlencode($ip));
+            self::writer()->clearLoginThrottle($ip);
         } catch (Throwable $e) {
             error_log('Auth::attempt: throttle reset failed: ' . $e->getMessage());
         }
@@ -171,11 +165,11 @@ final class Auth
     public static function audit(string $action, string $detail = ''): void
     {
         try {
-            self::writer()->request('POST', '/rest/v1/admin_audit_log', [
-                'admin_username' => $_SESSION['admin_username'] ?? 'unknown',
-                'action'         => $action,
-                'detail'         => $detail,
-            ]);
+            self::writer()->logAudit(
+                $_SESSION['admin_username'] ?? 'unknown',
+                $action,
+                $detail
+            );
         } catch (Throwable $e) {
             error_log('audit skipped: ' . $action . ' — ' . $e->getMessage());
         }

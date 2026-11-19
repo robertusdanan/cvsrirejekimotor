@@ -22,7 +22,7 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $report = null;
 $error = null;
 
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
 }
 
 /** @return array<string, mixed> */
-function runImagesImport(SupabaseWriter $sw): array
+function runImagesImport(MySQLWriter $sw): array
 {
     if (!class_exists('ZipArchive')) {
         throw new RuntimeException('Ekstensi ZipArchive tidak aktif di server ini.');

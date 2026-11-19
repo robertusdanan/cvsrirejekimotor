@@ -17,7 +17,7 @@
 require __DIR__ . '/bootstrap.php';
 Auth::requireLogin();
 
-$sw = supabaseWriter();
+$sw = dbWriter();
 $report = null;
 $error = null;
 
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
 }
 
 /** @return array<string, mixed> */
-function runImport(SupabaseWriter $sw): array
+function runImport(MySQLWriter $sw): array
 {
     $xlsx = $_FILES['xlsx'] ?? null;
     if ($xlsx === null || ($xlsx['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {

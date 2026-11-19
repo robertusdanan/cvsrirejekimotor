@@ -16,14 +16,14 @@ declare(strict_types=1);
 
 require __DIR__ . '/../config/config.php';
 require __DIR__ . '/../src/Cache.php';
-require __DIR__ . '/../src/SupabaseWriter.php';
+require __DIR__ . '/../src/MySQLWriter.php';
 require __DIR__ . '/../src/CacheBuilder.php';
 
 $options = getopt('', ['resource::']);
 $resource = $options['resource'] ?? null;
 
 $builder = new CacheBuilder(
-    new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY')),
+    new MySQLWriter(),
     new Cache()
 );
 

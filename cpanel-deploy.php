@@ -158,8 +158,8 @@ try {
     $configLoaded = false;
     if (is_file($publicHtml . '/config/config.php')) {
         require_once $publicHtml . '/config/config.php';
-        if (is_file($publicHtml . '/src/SupabaseWriter.php')) {
-            require_once $publicHtml . '/src/SupabaseWriter.php';
+        if (is_file($publicHtml . '/src/MySQLWriter.php')) {
+            require_once $publicHtml . '/src/MySQLWriter.php';
         }
         if (is_file($publicHtml . '/src/Cache.php')) {
             require_once $publicHtml . '/src/Cache.php';
@@ -177,7 +177,7 @@ try {
         cacheBuilder()->rebuildAll();
         $output['cache_rebuild'] = 'success';
     } elseif ($configLoaded && function_exists('config')) {
-        $writer = new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
+        $writer = new MySQLWriter();
         $cache = new Cache();
         $builder = new CacheBuilder($writer, $cache);
         $builder->rebuildAll();

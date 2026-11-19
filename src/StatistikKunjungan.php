@@ -7,15 +7,15 @@ declare(strict_types=1);
  * - Menghitung SEMUA pengunjung, anonim tanpa login.
  * - Dedup per IP per hari (WIB): 1 IP = 1 kunjungan/hari. Tutup browser lalu buka
  *   lagi tetap terhitung 1x dalam sehari.
- * - IP ASLI TIDAK PERNAH DISIMPAN: yang dikirim ke Supabase hanya hash HMAC-SHA256
+ * - IP ASLI TIDAK PERNAH DISIMPAN: yang dikirim ke PostgreSQL hanya hash HMAC-SHA256
  *   dari IP + WEBHOOK_SECRET (server-side). Hash tidak bisa dibalik menjadi IP.
  *   File dedup lokal juga hanya berisi hash, dan hanya untuk hari ini.
  * - Bot/crawler tidak dihitung.
  * - PENGECUALIAN dari aturan lama "website tidak pernah menulis ke Supabase"
  *   (lihat Supabase.php): pengecualian ini eksplisit per perintah Danan 2026-11-18,
  *   dan tulisannya TERBATAS pada tabel statistik_kunjungan(_ip) lewat dua fungsi
- *   RPC (catat_kunjungan, baca_statistik). Tidak ada tulis lain ke Supabase.
- * - Semua kegagalan (Supabase down, tabel/fungsi belum dibuat) ditelan: footer
+ *   (catatKunjungan, bacaStatistik di MySQLWriter). Tidak ada tulis lain ke PostgreSQL.
+ * - Semua kegagalan (PostgreSQL down, tabel belum dibuat) ditelan: footer
  *   tetap tampil dengan angka terakhir yang tersimpan lokal, atau 0.
  */
 final class StatistikKunjungan
@@ -26,9 +26,9 @@ final class StatistikKunjungan
     private const CACHE_FILE = 'statistik.json';
     private const IP_FILE_PREFIX = 'statistik_ip_';
 
-    public function __construct(?SupabaseWriter $writer = null, ?Cache $cache = null)
+    public function __construct(?MySQLWriter $writer = null, ?Cache $cache = null)
     {
-        $this->writer = $writer ?? (class_exists('SupabaseWriter') ? new SupabaseWriter() : null);
+        $this->writer = $writer ?? (class_exists('MySQLWriter') ? new MySQLWriter() : null);
         $this->cache = $cache ?? cache();
     }
 
@@ -88,11 +88,11 @@ final class StatistikKunjungan
             if ($this->writer === null) {
                 return;
             }
-            // Dedup lokal dulu: bila hash IP ini sudah tercatat hari ini, jangan panggil Supabase.
+            // Dedup lokal dulu: bila hash IP ini sudah tercatat hari ini, jangan panggil PostgreSQL.
             if (in_array($hash, $this->bacaIpHariIni($today), true)) {
                 return;
             }
-            $row = $this->writer->callRpc('catat_kunjungan', ['p_ip_hash' => $hash]);
+            $row = $this->writer->catatKunjungan($hash);
             if ($row !== null) {
                 $this->tulisCache([
                     'tanggal' => $today,
@@ -106,7 +106,7 @@ final class StatistikKunjungan
         }
     }
 
-    /** Baca angka untuk footer: cache lokal bila tanggalnya hari ini, bila tidak RPC baca. */
+    /** Baca angka untuk footer: cache lokal bila tanggalnya hari ini, bila tidak baca PostgreSQL. */
     public function baca(): array
     {
         try {
@@ -117,7 +117,7 @@ final class StatistikKunjungan
                     'total' => (int) ($cached['total'] ?? 0),
                 ];
             }
-            $row = $this->writer !== null ? $this->writer->callRpc('baca_statistik') : null;
+            $row = $this->writer !== null ? $this->writer->bacaStatistik() : null;
             if ($row !== null) {
                 $data = [
                     'tanggal' => $this->hariIni(),
