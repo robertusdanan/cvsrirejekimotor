@@ -26,6 +26,7 @@ declare(strict_types=1);
 require __DIR__ . '/../config/config.php';
 require __DIR__ . '/../src/Cache.php';
 require __DIR__ . '/../src/MySQLWriter.php';
+require __DIR__ . '/../src/CacheBuilder.php';
 
 header('Content-Type: application/json');
 
@@ -120,7 +121,12 @@ foreach ($rows as $r) {
     }
 }
 
-$expectedProducts = $liveProducts - $redirectCount;
+// Kartu yang diharapkan = produk live dikurangi produk yang digabung.
+// JANGAN pakai jumlah redirect: bila kode kanonis adalah bentuk OEM bersih
+// yang bukan kode anggota (mis. '8-94408-840-3'), semua anggota punya
+// redirect sehingga redirect > penggabungan (11 vs 10) dan fresh jadi salah.
+$mergeReduction = CacheBuilder::mergeReduction();
+$expectedProducts = $liveProducts - $mergeReduction;
 $expectedImaged = $liveImaged - $imagedReduction;
 $fresh = ($cacheProducts === $expectedProducts) && ($cacheImaged === $expectedImaged);
 
@@ -139,6 +145,7 @@ echo json_encode([
     ],
     'merged' => [
         'redirects' => $redirectCount,
+        'merge_reduction' => $mergeReduction,
         'expected_products' => $expectedProducts,
         'expected_imaged' => $expectedImaged,
     ],

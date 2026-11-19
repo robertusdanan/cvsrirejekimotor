@@ -86,6 +86,23 @@ final class CacheBuilder
         '8-94408-840-3' => ['I8-94408 840-3', 'TE8-94408-840-3'],
     ];
 
+    /**
+     * Jumlah produk yang "hilang" dari hitungan kartu karena merge
+     * (sum (anggota - 1) per grup). Dipakai cache-status.php untuk
+     * menghitung kartu yang diharapkan. TIDAK sama dengan jumlah redirect:
+     * bila kode kanonis adalah bentuk OEM bersih yang bukan kode anggota
+     * (mis. '8-94408-840-3'), SEMUA anggota punya redirect (2 redirect)
+     * padahal yang digabung hanya 1 produk.
+     */
+    public static function mergeReduction(): int
+    {
+        $n = 0;
+        foreach (self::MERGE_GROUPS as $members) {
+            $n += max(0, count($members) - 1);
+        }
+        return $n;
+    }
+
     public function rebuildAll(): void
     {
         $errors = [];
