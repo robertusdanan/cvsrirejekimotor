@@ -23,10 +23,26 @@ $brand = trim($_GET['merk'] ?? '');
 $vehicle = trim($_GET['kendaraan'] ?? '');
 $category = trim($_GET['kategori'] ?? '');
 
+// Pencarian fleksibel: query dipecah jadi kata-kata, tiap kata dinormalisasi
+// (huruf kecil + buang semua non-alfanumerik). Jadi "4875079030" menemukan
+// "48750-79030", dan "baut roda canter" cocok bila tiap katanya ada di salah
+// satu field (kode/nama/mobil/merk) — tidak harus berurutan dalam satu field.
+$queryWords = [];
+if ($q !== '') {
+    foreach (preg_split('/\s+/', $q) as $w) {
+        $nw = preg_replace('/[^a-z0-9]/', '', strtolower((string) $w));
+        if ($nw !== '') {
+            $queryWords[] = $nw;
+        }
+    }
+}
+
 $hasFilter = ($q !== '' || $brand !== '' || $vehicle !== '' || $category !== '');
 
-$filtered = array_filter($index, function ($p) use ($q, $brand, $vehicle, $category) {
-    if ($q !== '') {
+$filtered = array_filter($index, function ($p) use ($queryWords, $brand, $vehicle, $category) {
+    if (!empty($queryWords)) {
+        // Ruang pencarian = gabungan 4 field utama (+ nama_lain/kategori +
+        // varian), dinormalisasi dengan cara yang sama seperti kata kunci.
         $searchSpace = ($p['nama_produk'] ?? '') . ' ' .
                        ($p['kode_barang'] ?? '') . ' ' .
                        ($p['merk'] ?? '') . ' ' .
@@ -35,11 +51,14 @@ $filtered = array_filter($index, function ($p) use ($q, $brand, $vehicle, $categ
                        ($p['category'] ?? '');
         if (!empty($p['variants'])) {
             foreach ($p['variants'] as $v) {
-                $searchSpace .= ' ' . ($v['kode_barang'] ?? '') . ' ' . ($v['merk'] ?? '');
+                $searchSpace .= ' ' . ($v['kode_barang'] ?? '') . ' ' . ($v['merk'] ?? '') . ' ' . ($v['nama_produk'] ?? '') . ' ' . ($v['nama_mobil'] ?? '');
             }
         }
-        if (stripos($searchSpace, $q) === false) {
-            return false;
+        $searchSpace = preg_replace('/[^a-z0-9]/', '', strtolower($searchSpace));
+        foreach ($queryWords as $nw) {
+            if (strpos($searchSpace, $nw) === false) {
+                return false;
+            }
         }
     }
     if ($brand !== '') {

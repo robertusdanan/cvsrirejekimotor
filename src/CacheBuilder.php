@@ -395,6 +395,8 @@ final class CacheBuilder
                     'kode_barang' => $mkode,
                     'merk' => $merk,
                     'harga_jual' => $harga,
+                    'nama_produk' => trim((string) ($m['nama_produk'] ?? '')),
+                    'nama_mobil' => $m['nama_mobil'] ?? null,
                     'images' => $imgs,
                     'primary_image' => $this->primaryImage($imgs),
                 ];
@@ -402,6 +404,8 @@ final class CacheBuilder
                 if ($harga > $variantsByMerk[$key]['harga_jual']) {
                     $variantsByMerk[$key]['harga_jual'] = $harga;
                     $variantsByMerk[$key]['kode_barang'] = $mkode;
+                    $variantsByMerk[$key]['nama_produk'] = trim((string) ($m['nama_produk'] ?? ''));
+                    $variantsByMerk[$key]['nama_mobil'] = $m['nama_mobil'] ?? null;
                 }
                 $seen = [];
                 foreach ($variantsByMerk[$key]['images'] as $im) {

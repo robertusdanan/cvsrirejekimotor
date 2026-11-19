@@ -191,17 +191,52 @@ final class MySQLWriter
     // PRODUCTS & PRODUCT IMAGES
     // =========================================================================
 
+    /**
+     * Bangun klausa WHERE pencarian fleksibel + parameternya.
+     * - Query dipecah jadi kata-kata; tiap kata harus cocok di SALAH SATU dari
+     *   kode_barang/nama_produk/nama_mobil/merk (gabungan antar-field).
+     * - Tanda hubung/spasi/titik/garis miring diabaikan (kolom dinormalisasi
+     *   via REPLACE di SQL) agar "4875079030" menemukan "48750-79030".
+     * Mengembalikan [string $whereSql, array $params].
+     */
+    private function buildSearchWhere(?string $search): array
+    {
+        if ($search === null || trim($search) === '') {
+            return ['', []];
+        }
+        $words = [];
+        foreach (preg_split('/\s+/', trim($search)) as $w) {
+            $nw = preg_replace('/[^a-z0-9]/', '', strtolower((string) $w));
+            if ($nw !== '') {
+                $words[] = $nw;
+            }
+        }
+        if ($words === []) {
+            return ['', []];
+        }
+        $norm = function (string $col): string {
+            return "REPLACE(REPLACE(REPLACE(REPLACE($col,'-',''),' ',''),'.',''),'/','')";
+        };
+        $conds = [];
+        $params = [];
+        foreach ($words as $nw) {
+            $like = '%' . $nw . '%';
+            $conds[] = '(' . $norm('kode_barang') . ' LIKE ? OR ' . $norm('nama_produk') . ' LIKE ? OR ' . $norm('nama_mobil') . ' LIKE ? OR ' . $norm('merk') . ' LIKE ?)';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+        return [' WHERE ' . implode(' AND ', $conds), $params];
+    }
+
     public function getProducts(?string $search = null, ?int $limit = null, int $offset = 0): array
     {
         $sql = 'SELECT id, kode_barang, nama_produk, nama_mobil, nama_lain, merk, category, ' .
             'stok, harga_jual, description, featured, sort_order, marketplaces, created_at, updated_at ' .
             'FROM products';
-        $params = [];
-        if ($search !== null && $search !== '') {
-            $sql .= ' WHERE kode_barang LIKE ? OR nama_produk LIKE ? OR merk LIKE ?';
-            $like = '%' . $search . '%';
-            $params = [$like, $like, $like];
-        }
+        [$where, $params] = $this->buildSearchWhere($search);
+        $sql .= $where;
         $sql .= ' ORDER BY sort_order ASC, created_at DESC';
         if ($limit !== null) {
             $sql .= ' LIMIT ? OFFSET ?';
@@ -229,12 +264,8 @@ final class MySQLWriter
     public function countProducts(?string $search = null): int
     {
         $sql = 'SELECT COUNT(*) AS c FROM products';
-        $params = [];
-        if ($search !== null && $search !== '') {
-            $sql .= ' WHERE kode_barang LIKE ? OR nama_produk LIKE ? OR merk LIKE ?';
-            $like = '%' . $search . '%';
-            $params = [$like, $like, $like];
-        }
+        [$where, $params] = $this->buildSearchWhere($search);
+        $sql .= $where;
         $st = $this->pdo->prepare($sql);
         $st->execute($params);
         $r = $st->fetch();
