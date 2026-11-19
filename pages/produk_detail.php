@@ -48,6 +48,8 @@ if ($product === null) {
         'brake-shoe-mkk9910' => 'brake-shoe-k9910',
         'brake-shoe-reborn-mkk2427' => 'brake-shoe-reborn-k2427',
         'brake-shoe-rr-mkk0021' => 'brake-shoe-rr-k0021',
+        // + rename 47201-OK240 -> 47201-0K240 (Danan 14:53; OK240 nol exact-match).
+        'master-rem-bm-assy-reborn-matic-47201-ok240' => 'master-rem-bm-assy-reborn-matic-47201-0k240',
     ];
     if (!empty($legacyRedirects[$slug])) {
         header('Location: /produk/' . $legacyRedirects[$slug], true, 301);
