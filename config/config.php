@@ -138,11 +138,11 @@ function config(string $key, $default = null)
         'R2_PUBLIC_URL'        => 'https://pub-7ce4b96396f24d399964a0f6f76805a7.r2.dev',
         'R2_BUCKET'            => 'sri-rejeki-motor',
         'COOKIE_SECURE'        => 'true',
-        // PostgreSQL (cPanel) — pengganti Supabase per Danan 2026-11-19.
-        // DB_NAME/DB_USER/DB_PASS TIDAK punya fallback: PostgresWriter
+        // MySQL (cPanel) — pengganti Supabase per Danan 2026-11-19.
+        // DB_NAME/DB_USER/DB_PASS TIDAK punya fallback: MySQLWriter
         // melempar error jelas bila ketiganya belum diisi di ~/private/.env.
         'DB_HOST'              => 'localhost',
-        'DB_PORT'              => '5432',
+        'DB_PORT'              => '3306',
     ];
 
     if (isset($defaults[$key])) {
