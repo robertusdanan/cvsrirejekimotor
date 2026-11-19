@@ -11,9 +11,13 @@ if ($product === null) {
     }
     // Slug lama dari 2 baris duplikat yang dihapus dari DB (Danan 2026-11-19):
     // 8-94223-366-TE dan TEMT-141213 — tetap 301 ke slug kanonis.
+    // + 2 baris duplikat rencana merge M8/M9 (disetujui Danan "setuju"):
+    // 8-94226-557 -> TE8-94226-557-2; TEMB-109936 -> halaman MB109936.
     $legacyRedirects = [
         'bosh-lower-arm-te-8-94223-366-te' => 'bos-lower-arm-te-8-94223-366te',
         'bosh-lower-arm-te-temt-141213' => 'bos-lower-arm-te-mt141213',
+        'bos-upper-arm-troper-te-8-94226-557' => 'bush-arm-upper-te8-94226-557-2',
+        'bush-arm-lower-temb-109936' => 'bosh-sentrik-mb109936',
     ];
     if (!empty($legacyRedirects[$slug])) {
         header('Location: /produk/' . $legacyRedirects[$slug], true, 301);

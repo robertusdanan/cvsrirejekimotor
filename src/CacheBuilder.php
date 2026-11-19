@@ -71,7 +71,7 @@ final class CacheBuilder
      * dengan harga TERENDAH.
      */
     private const MERGE_GROUPS = [
-        'MB109936' => ['MB109936', 'TE-MB109936', 'TEMB-109936'],
+        'MB109936' => ['MB109936', 'TE-MB109936'],
         '04465-0K100' => ['04465-0K100', '044650K100'],
         '04495-0K040' => ['04495-0K040', '044950K040'],
         'MB489484' => ['MB489484', 'TEMB489484'],
@@ -84,6 +84,12 @@ final class CacheBuilder
         // (beda 1 digit 9 vs 4) + duplikat Terada harga lebih rendah -> DIHAPUS
         // dari DB oleh api/fix-merk-te.php (bukan anggota merge).
         '8-94408-840-3' => ['I8-94408 840-3', 'TE8-94408-840-3'],
+        // Grup 10 (2026-11-19, rencana merge disetujui Danan "setuju"):
+        // 04495-OK140 vs 044950K140 — nomor dasar sama (0K140), beda ejaan
+        // 0 vs O + ada/tidak ada strip. DAIMARU Rp230.000 vs TOYOTA
+        // Rp827.500 (aftermarket vs genuine) -> merge CACHE, bukan hapus DB.
+        // Kanonis '04495-0K140' adalah kode bersih (preceden grup 9).
+        '04495-0K140' => ['04495-OK140', '044950K140'],
     ];
 
     /**
