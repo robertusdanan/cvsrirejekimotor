@@ -62,9 +62,14 @@ final class CacheBuilder
      *
      * Format: kode kanonis => daftar kode anggota (urutan = urutan varian;
      * anggota PERTAMA = kanonis/default). Kode kanonis = bentuk OEM paling
-     * bersih. Dua baris TIDAK BISA memegang kode yang sama di Supabase
-     * (kode_barang UNIQUE), jadi penggabungan dilakukan di lapisan
-     * cache/website — semua 1000 baris tetap ada di Supabase.
+     * bersih.
+     *
+     * SEJAK 2026-11-19 (Danan: kunci = ID, kode_barang BOLEH sama):
+     * pasangan yang sudah di-rename ke kode yang sama TIDAK LAGI butuh
+     * entri di sini — mereka digabung OTOMATIS per kode_barang (lihat
+     * groupRows()). MERGE_GROUPS dipertahankan sebagai fallback untuk
+     * pasangan yang kodenya MASIH berbeda (belum di-rename) + sebagai
+     * pengaman bila ada pasangan baru yang kodenya berbeda.
      *
      * Grup 2 & 6: kedua anggota bermerk SAMA (TE) dengan harga berbeda
      * (kemungkinan salah ketik di Accurate) -> digabung jadi SATU varian TE
@@ -93,51 +98,75 @@ final class CacheBuilder
     ];
 
     /**
-     * Jumlah produk yang "hilang" dari hitungan kartu karena merge
-     * (sum (anggota - 1) per grup). Dipakai cache-status.php untuk
+     * Kelompokkan baris produk berdasarkan kode_barang.
+     * - Baris yang kodenya anggota MERGE_GROUPS -> kunci = kode kanonis grup.
+     * - Baris lain -> kunci = kode_barang sendiri (pengelompokan OTOMATIS;
+     *   dua baris boleh memegang kode yang sama — kunci = ID, Danan
+     *   2026-11-19 — mereka jadi SATU produk kanonis dengan variants).
+     * Dipakai rebuildProducts() + mergeReduction() + imagedMergeReduction()
+     * supaya ketiganya menghitung pengelompokan yang SAMA.
+     * @return array<string, array> kunci grup => daftar baris
+     */
+    private static function groupRows(array $rows): array
+    {
+        $memberToGroup = [];
+        foreach (self::MERGE_GROUPS as $canonical => $members) {
+            foreach ($members as $m) {
+                $memberToGroup[$m] = $canonical;
+            }
+        }
+        $grouped = [];
+        foreach ($rows as $row) {
+            $kode = trim((string) ($row['kode_barang'] ?? ''));
+            if ($kode === '') {
+                continue;
+            }
+            $key = $memberToGroup[$kode] ?? $kode;
+            $grouped[$key][] = $row;
+        }
+        return $grouped;
+    }
+
+    /**
+     * Jumlah produk yang "hilang" dari hitungan kartu karena pengelompokan
+     * (baris live - kartu kanonis). Dihitung dari BARIS LIVE (bukan peta
+     * statis), supaya penghapusan anggota / rename ke kode sama langsung
+     * tercermin (mis. TE48632-27010 dihapus -> grup 48632-27010 tinggal
+     * 1 baris -> reduksi 0, bukan 1). Dipakai cache-status.php untuk
      * menghitung kartu yang diharapkan. TIDAK sama dengan jumlah redirect:
      * bila kode kanonis adalah bentuk OEM bersih yang bukan kode anggota
      * (mis. '8-94408-840-3'), SEMUA anggota punya redirect (2 redirect)
      * padahal yang digabung hanya 1 produk.
      */
-    public static function mergeReduction(): int
+    public static function mergeReduction(array $rows): int
     {
+        $grouped = self::groupRows($rows);
         $n = 0;
-        foreach (self::MERGE_GROUPS as $members) {
+        foreach ($grouped as $members) {
             $n += max(0, count($members) - 1);
         }
         return $n;
     }
 
     /**
-     * Jumlah baris bergambar yang "hilang" dari hitungan kartu karena merge.
-     * Dihitung dari BARIS LIVE (bukan dari varian di cache), karena varian
-     * digabung PER MERK: dua anggota bermerk sama dalam satu grup (mis.
-     * 48632-27010 + TE48632-27010, keduanya Terada) menjadi SATU varian di
-     * cache, padahal keduanya adalah baris live yang masing-masing
-     * bergambar. Menghitung dari varian cache mengecilkan reduksi 1 untuk
-     * grup seperti itu (bug 2026-11-19: expected_imaged 322 vs benar 321).
-     * Per grup: (anggota bergambar - 1) bila >= 2 anggota bergambar.
-     * $rows = daftar baris produk live (getProducts), masing-masing dengan
-     * 'kode_barang' + 'product_images'.
+     * Jumlah baris bergambar yang "hilang" dari hitungan kartu karena
+     * pengelompokan. Dihitung dari BARIS LIVE (bukan dari varian di cache),
+     * karena varian digabung PER MERK: dua anggota bermerk sama dalam satu
+     * grup (mis. 48632-27010 + TE48632-27010, keduanya Terada) menjadi SATU
+     * varian di cache, padahal keduanya adalah baris live yang
+     * masing-masing bergambar. Menghitung dari varian cache mengecilkan
+     * reduksi 1 untuk grup seperti itu (bug 2026-11-19: expected_imaged
+     * 322 vs benar 321). Per grup: (anggota bergambar - 1) bila >= 2
+     * anggota bergambar. $rows = daftar baris produk live (getProducts),
+     * masing-masing dengan 'kode_barang' + 'product_images'.
      */
     public static function imagedMergeReduction(array $rows): int
     {
-        $byKode = [];
-        foreach ($rows as $r) {
-            $kode = trim((string) ($r['kode_barang'] ?? ''));
-            if ($kode !== '') {
-                $byKode[$kode] = $r;
-            }
-        }
+        $grouped = self::groupRows($rows);
         $n = 0;
-        foreach (self::MERGE_GROUPS as $members) {
+        foreach ($grouped as $members) {
             $k = 0;
-            foreach ($members as $kode) {
-                $row = $byKode[$kode] ?? null;
-                if ($row === null) {
-                    continue;
-                }
+            foreach ($members as $row) {
                 $imgs = is_array($row['product_images'] ?? null) ? $row['product_images'] : [];
                 foreach ($imgs as $im) {
                     if (!empty($im['path'])) {
@@ -192,43 +221,23 @@ final class CacheBuilder
     {
         $rows = $this->writer->getProducts();
 
-        // --- Kelompokkan baris: anggota grup varian vs standalone ---
-        $memberToGroup = [];
-        foreach (self::MERGE_GROUPS as $canonical => $members) {
-            foreach ($members as $m) {
-                $memberToGroup[$m] = $canonical;
-            }
-        }
-        $grouped = [];
-        $standalone = [];
-        foreach ($rows as $row) {
-            $kode = trim((string) ($row['kode_barang'] ?? ''));
-            if ($kode === '') {
-                continue;
-            }
-            $canon = $memberToGroup[$kode] ?? null;
-            if ($canon !== null) {
-                $grouped[$canon][] = $row;
-            } else {
-                $standalone[] = $row;
-            }
-        }
+        // --- Kelompokkan baris: grup varian (MERGE_GROUPS + kode sama) ---
+        // Kunci = ID (Danan 2026-11-19): dua baris boleh memegang
+        // kode_barang yang sama -> satu produk kanonis dengan variants.
+        $grouped = self::groupRows($rows);
 
         $allPublic = [];
         $slugs = [];
         $redirects = [];
 
-        // Produk standalone: seperti sebelumnya.
-        foreach ($standalone as $row) {
-            $product = $this->buildSingleProduct($row, $slugs);
-            if ($product !== null) {
-                $allPublic[] = $product;
-            }
-        }
-
-        // Produk gabungan: satu kanonis + variants per merk.
+        // Produk: satu baris -> standalone; >1 baris (atau grup
+        // MERGE_GROUPS) -> satu kanonis + variants per merk.
         foreach ($grouped as $canonicalKode => $members) {
-            $product = $this->buildMergedProduct($canonicalKode, $members, $slugs, $redirects);
+            if (count($members) === 1 && !isset(self::MERGE_GROUPS[$canonicalKode])) {
+                $product = $this->buildSingleProduct($members[0], $slugs);
+            } else {
+                $product = $this->buildMergedProduct($canonicalKode, $members, $slugs, $redirects);
+            }
             if ($product !== null) {
                 $allPublic[] = $product;
             }

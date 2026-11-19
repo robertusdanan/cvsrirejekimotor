@@ -287,6 +287,28 @@ final class MySQLWriter
         return $this->normalizeProduct($r, [$r['id'] => $this->imagesForProduct($r['id'])]);
     }
 
+    /**
+     * SEMUA baris dengan kode_barang tertentu (kode boleh sama untuk
+     * beberapa baris — kunci = ID, Danan 2026-11-19). Dipakai endpoint
+     * upload gambar untuk membedakan varian by merk (atau melampirkan
+     * gambar ke semua varian bila merk tidak disebut). Urutan: id.
+     * @return array<int, array>
+     */
+    public function getProductsByKode(string $kode): array
+    {
+        $st = $this->pdo->prepare(
+            'SELECT id, kode_barang, nama_produk, nama_mobil, nama_lain, merk, category, ' .
+            'stok, harga_jual, description, featured, sort_order, marketplaces, created_at, updated_at ' .
+            'FROM products WHERE kode_barang = ? ORDER BY id'
+        );
+        $st->execute([$kode]);
+        $out = [];
+        foreach ($st->fetchAll() as $r) {
+            $out[] = $this->normalizeProduct($r, [$r['id'] => $this->imagesForProduct($r['id'])]);
+        }
+        return $out;
+    }
+
     public function getProductById(string $id): ?array
     {
         $st = $this->pdo->prepare(

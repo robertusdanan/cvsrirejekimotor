@@ -14,6 +14,9 @@ declare(strict_types=1);
  * POST multipart (upload satu gambar):
  *   image        file gambar (jpg/png/webp, maks 8 MB)
  *   kode_barang  Kode Barang produk (wajib; "_" boleh untuk "/")
+ *   merk         (opsional) bila kode punya >1 varian, lampirkan hanya ke
+ *                  varian bermerk ini; bila tidak disebut, gambar yang
+ *                  sama dilampirkan ke SEMUA varian kode itu.
  *   replace      1 = timpa gambar lama (hapus dari R2), kosong = tolak bila
  *                  produk sudah punya gambar
  *   append       1 = tambah sebagai gambar ke-2 dst (bila sudah ada gambar)
@@ -95,16 +98,48 @@ $append = !empty($_POST['append']);
 set_time_limit(300);
 
 // Cari produk (coba kode persis, lalu "_" -> "/" seperti import admin).
-$product = $writer->getProductByKode($kode);
-if ($product === null && str_contains($kode, '_')) {
-    $product = $writer->getProductByKode(str_replace('_', '/', $kode));
+// Kode boleh sama untuk beberapa baris (kunci = ID, Danan 2026-11-19):
+// - bila parameter POST 'merk' disebut -> lampirkan HANYA ke varian
+//   bermerk itu (cocok persis, case-insensitive);
+// - bila tidak disebut dan kodenya punya >1 baris -> lampirkan gambar
+//   yang SAMA ke SEMUA varian (gambarnya gambar part yang sama).
+$merk = trim((string) ($_POST['merk'] ?? ''));
+$candidates = $writer->getProductsByKode($kode);
+if ($candidates === [] && str_contains($kode, '_')) {
+    $candidates = $writer->getProductsByKode(str_replace('_', '/', $kode));
 }
-if ($product === null) {
+if ($candidates === []) {
     fail(404, 'produk tidak ditemukan: ' . $kode);
 }
+$targets = [];
+if ($merk !== '') {
+    foreach ($candidates as $c) {
+        if (strcasecmp(trim((string) ($c['merk'] ?? '')), $merk) === 0) {
+            $targets[] = $c;
+            break;
+        }
+    }
+    if ($targets === []) {
+        $merks = [];
+        foreach ($candidates as $c) {
+            $merks[] = ($c['merk'] ?? '(tanpa merk)');
+        }
+        fail(409, 'kode ' . $kode . ' tidak punya varian bermerk "' . $merk . '" — varian yang ada: ' . implode(', ', $merks));
+    }
+} else {
+    $targets = $candidates;
+}
+$product = $targets[0];
 $productId = (string) ($product['id'] ?? '');
 $kodeAsli = (string) ($product['kode_barang'] ?? $kode);
-$existing = is_array($product['product_images'] ?? null) ? $product['product_images'] : [];
+$existing = [];
+foreach ($targets as $t) {
+    foreach (is_array($t['product_images'] ?? null) ? $t['product_images'] : [] as $im) {
+        if (!empty($im['path'])) {
+            $existing[] = $im;
+        }
+    }
+}
 
 if ($existing !== [] && !$replace && !$append) {
     fail(409, 'produk sudah punya gambar (pakai replace=1 untuk menimpa, append=1 untuk menambah)');
@@ -123,35 +158,50 @@ if (empty($res['path'])) {
 }
 $newPath = (string) $res['path'];
 
-// Susun daftar gambar baru untuk disinkronkan.
+// Susun daftar gambar baru untuk disinkronkan (per target; bila kode
+// punya >1 varian, gambar yang sama dilampirkan ke semua varian).
 if ($replace && $existing !== []) {
+    $seenDel = [];
     foreach ($existing as $old) {
-        if (!empty($old['path'])) {
-            try {
-                $imgHandler->deleteR2File((string) $old['path']);
-            } catch (Throwable $e) {
-                // Hapus R2 best-effort; jangan gagalkan upload.
+        $p = (string) ($old['path'] ?? '');
+        if ($p === '' || isset($seenDel[$p])) {
+            continue;
+        }
+        $seenDel[$p] = true;
+        try {
+            $imgHandler->deleteR2File($p);
+        } catch (Throwable $e) {
+            // Hapus R2 best-effort; jangan gagalkan upload.
+        }
+    }
+}
+$productIds = [];
+foreach ($targets as $t) {
+    $tid = (string) ($t['id'] ?? '');
+    if ($tid === '') {
+        continue;
+    }
+    $productIds[] = $tid;
+    $tExisting = is_array($t['product_images'] ?? null) ? $t['product_images'] : [];
+    if ($replace && $tExisting !== []) {
+        $images = [['path' => $newPath, 'primary' => true]];
+    } elseif ($append && $tExisting !== []) {
+        $images = [];
+        foreach ($tExisting as $old) {
+            if (!empty($old['path'])) {
+                $images[] = ['path' => (string) $old['path'], 'primary' => (bool) ($old['is_primary'] ?? false)];
             }
         }
+        $images[] = ['path' => $newPath, 'primary' => false];
+    } else {
+        $images = [['path' => $newPath, 'primary' => true]];
     }
-    $images = [['path' => $newPath, 'primary' => true]];
-} elseif ($append && $existing !== []) {
-    $images = [];
-    foreach ($existing as $old) {
-        if (!empty($old['path'])) {
-            $images[] = ['path' => (string) $old['path'], 'primary' => (bool) ($old['is_primary'] ?? false)];
-        }
+    try {
+        $writer->syncProductImages($tid, $images);
+    } catch (Throwable $e) {
+        error_log('image-upload sync Supabase gagal untuk ' . $kodeAsli . ' (' . $tid . '): ' . $e->getMessage());
+        fail(500, 'gagal menyimpan ke Supabase: ' . $e->getMessage());
     }
-    $images[] = ['path' => $newPath, 'primary' => false];
-} else {
-    $images = [['path' => $newPath, 'primary' => true]];
-}
-
-try {
-    $writer->syncProductImages($productId, $images);
-} catch (Throwable $e) {
-    error_log('image-upload sync Supabase gagal untuk ' . $kodeAsli . ': ' . $e->getMessage());
-    fail(500, 'gagal menyimpan ke Supabase: ' . $e->getMessage());
 }
 
 // Rebuild cache produk (terverifikasi) supaya gambar langsung tampil.
@@ -168,6 +218,7 @@ echo json_encode([
     'ok' => true,
     'kode_barang' => $kodeAsli,
     'product_id' => $productId,
+    'product_ids' => $productIds,
     'path' => $newPath,
     'url' => $res['url'] ?? '',
     'cache_warning' => $cacheWarning,

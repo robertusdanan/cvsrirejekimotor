@@ -69,12 +69,14 @@ $meta = $cache->read('_meta/products.json') ?? [];
 $cacheVersion = (int) ($meta['version'] ?? 0);
 $cacheUpdatedAt = $meta['updated_at'] ?? null;
 
-// --- Produk gabungan (varian): 19 baris live -> 9 kartu kanonis ---
-// Cache menyimpan produk KANONIS (987), sedangkan live menyimpan
-// 997 baris. Selisihnya = mergeReduction (10), BUKAN jumlah redirect:
-// bila kode kanonis adalah bentuk OEM bersih yang bukan kode anggota
-// (mis. '8-94408-840-3'), semua anggota punya redirect sehingga
-// redirect > penggabungan (11 vs 10).
+// --- Produk gabungan (varian): baris live -> kartu kanonis ---
+// Cache menyimpan produk KANONIS, sedangkan live menyimpan baris.
+// Selisihnya = mergeReduction (dihitung dari BARIS LIVE via
+// CacheBuilder::mergeReduction($rows), supaya pengelompokan otomatis
+// per kode_barang + MERGE_GROUPS terhitung sama seperti rebuild).
+// BUKAN jumlah redirect: bila kode kanonis adalah bentuk OEM bersih
+// yang bukan kode anggota (mis. '8-94408-840-3'), semua anggota punya
+// redirect sehingga redirect > penggabungan (11 vs 10).
 // Untuk gambar, reduksi dihitung dari BARIS LIVE via
 // CacheBuilder::imagedMergeReduction() — JANGAN dari varian di cache,
 // karena varian digabung per merk (dua anggota bermerk sama jadi satu
@@ -113,7 +115,7 @@ foreach ($rows as $r) {
 // JANGAN pakai jumlah redirect: bila kode kanonis adalah bentuk OEM bersih
 // yang bukan kode anggota (mis. '8-94408-840-3'), semua anggota punya
 // redirect sehingga redirect > penggabungan (11 vs 10) dan fresh jadi salah.
-$mergeReduction = CacheBuilder::mergeReduction();
+$mergeReduction = CacheBuilder::mergeReduction($rows);
 $imagedReduction = CacheBuilder::imagedMergeReduction($rows);
 $expectedProducts = $liveProducts - $mergeReduction;
 $expectedImaged = $liveImaged - $imagedReduction;
