@@ -68,6 +68,31 @@ $meta = $cache->read('_meta/products.json') ?? [];
 $cacheVersion = (int) ($meta['version'] ?? 0);
 $cacheUpdatedAt = $meta['updated_at'] ?? null;
 
+// --- Produk gabungan (varian): 19 baris Supabase -> 9 kartu kanonis ---
+// Cache menyimpan produk KANONIS (990), sedangkan Supabase menyimpan
+// 1000 baris. Selisihnya = jumlah redirect (slug lama -> slug kanonis).
+// Untuk gambar: bila 2 varian dalam 1 kartu sama-sama bergambar (mis.
+// DAIMARU + TOYOTA di 04465-0K100), live menghitung 2 baris bergambar
+// tapi cache menghitung 1 kartu bergambar. Reduksi = (varian bergambar - 1)
+// per kartu gabungan.
+$redirectData = $cache->read('products/redirects.json');
+$redirectCount = is_array($redirectData['redirects'] ?? null) ? count($redirectData['redirects']) : 0;
+$imagedReduction = 0;
+foreach ($indexItems as $it) {
+    if (empty($it['variants'])) {
+        continue;
+    }
+    $n = 0;
+    foreach ($it['variants'] as $v) {
+        if (!empty($v['primary_image'])) {
+            $n++;
+        }
+    }
+    if ($n > 1) {
+        $imagedReduction += ($n - 1);
+    }
+}
+
 // --- Baca live: Supabase products (+ product_images yang menempel) ---
 $writer = new SupabaseWriter(config('SUPABASE_URL'), config('SUPABASE_SERVICE_ROLE_KEY'));
 try {
@@ -95,7 +120,9 @@ foreach ($rows as $r) {
     }
 }
 
-$fresh = ($cacheProducts === $liveProducts) && ($cacheImaged === $liveImaged);
+$expectedProducts = $liveProducts - $redirectCount;
+$expectedImaged = $liveImaged - $imagedReduction;
+$fresh = ($cacheProducts === $expectedProducts) && ($cacheImaged === $expectedImaged);
 
 echo json_encode([
     'ok' => true,
@@ -109,6 +136,11 @@ echo json_encode([
     'live' => [
         'products' => $liveProducts,
         'imaged' => $liveImaged,
+    ],
+    'merged' => [
+        'redirects' => $redirectCount,
+        'expected_products' => $expectedProducts,
+        'expected_imaged' => $expectedImaged,
     ],
     'checked_at' => gmdate('Y-m-d\TH:i:s\Z'),
 ]);
