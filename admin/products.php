@@ -78,6 +78,12 @@ require __DIR__ . '/templates/admin_header.php';
     </div>
 <?php endif; ?>
 
+<?php if (isset($_GET['notfound'])): ?>
+    <div class="mb-6 rounded-lg bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm">
+        Produk tidak ditemukan — mungkin sudah dihapus atau tautan kedaluwarsa. Coba muat ulang daftar lalu klik Edit lagi.
+    </div>
+<?php endif; ?>
+
 <?php if (isset($_GET['cache']) && $_GET['cache'] === 'stale'): ?>
     <div class="mb-6 rounded-lg bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm">
         Data sudah tersimpan/dihapus, tetapi cache situs belum diperbarui (rebuild gagal). Gunakan "Refresh Semua Cache" di Dashboard.

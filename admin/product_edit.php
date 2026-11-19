@@ -11,7 +11,9 @@ $id = trim($_GET['id'] ?? $_POST['id'] ?? '');
 $product = $id !== '' ? $sw->getProductById($id) : null;
 
 if (!$product) {
-    header('Location: /admin/products.php');
+    // Jangan redirect diam-diam — tanpa pesan, pengguna mengira klik Edit
+    // "error" (kembali ke daftar tanpa penjelasan). Beri tahu lewat notice.
+    header('Location: /admin/products.php?notfound=1');
     exit;
 }
 
