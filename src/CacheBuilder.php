@@ -402,22 +402,40 @@ final class CacheBuilder
     private function buildMergedProduct(string $canonicalKode, array $members, array &$slugs, array &$redirects): ?array
     {
         $order = self::MERGE_GROUPS[$canonicalKode] ?? [];
-        $byKode = [];
+        // JANGAN kunci anggota berdasarkan kode_barang: anggota satu grup kini
+        // BERBAGI kode yang sama (hasil rename audit ke kode kanonis), jadi
+        // $byKode[kode] = $m menimpa anggota lain dan hanya 1 varian yang
+        // tampil di halaman produk (bug 2026-11-19: busi 90919-T1004 dan
+        // 04465-0K100 hanya menampilkan 1 varian padahal grupnya 2 anggota).
+        // Kelompokkan per kode (jaga urutan asli); per kode, wakilnya adalah
+        // anggota TERAKHIR (sesuai perilaku lama $byKode yang menimpa) supaya
+        // slug/nama kanonis yang sudah live TIDAK berubah; anggota lain
+        // mengikuti sebagai varian.
+        $byKodeList = [];
         foreach ($members as $m) {
             $k = trim((string) ($m['kode_barang'] ?? ''));
-            if ($k !== '') {
-                $byKode[$k] = $m;
+            if ($k === '') {
+                continue;
+            }
+            $byKodeList[$k][] = $m;
+        }
+        $kodeOrder = [];
+        foreach ($order as $k) {
+            if (isset($byKodeList[$k]) && !in_array($k, $kodeOrder, true)) {
+                $kodeOrder[] = $k;
+            }
+        }
+        foreach (array_keys($byKodeList) as $k) {
+            if (!in_array($k, $kodeOrder, true)) {
+                $kodeOrder[] = $k;
             }
         }
         $ordered = [];
-        foreach ($order as $k) {
-            if (isset($byKode[$k])) {
-                $ordered[] = $byKode[$k];
-            }
-        }
-        foreach ($byKode as $k => $m) {
-            if (!in_array($k, $order, true)) {
-                $ordered[] = $m;
+        foreach ($kodeOrder as $k) {
+            $list = $byKodeList[$k];
+            $ordered[] = end($list);
+            for ($i = 0; $i < count($list) - 1; $i++) {
+                $ordered[] = $list[$i];
             }
         }
         if ($ordered === []) {
