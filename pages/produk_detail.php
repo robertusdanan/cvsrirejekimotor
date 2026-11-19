@@ -62,6 +62,7 @@ if ($product === null) {
         'bosh-sentrik-mb109936' => 'bos-lower-arm-te-mb109936',
         'bosh-upper-arm-i8-94408-840-3' => 'bosh-arm-atas-8-94408-840-3',
         'brake-booster-jdc51300-77310' => 'brake-booster-51300-77310',
+        'brake-booster-sncmk384470' => 'brake-booster-mk384470',
         'brake-drum-blk-ors-mk529942idn' => 'brake-drum-blk-ors-mk529942',
         'brake-lining-i6-87870-028-1' => 'brake-lining-5-87870-028-1',
         'brake-pad-04465-0k100' => 'brake-pad-ors-04465-0k100',
