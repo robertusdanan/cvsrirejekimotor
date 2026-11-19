@@ -20,7 +20,6 @@ INSERT INTO brands (name, short_name, sort_order) VALUES ('Aspira', NULL, 4) ON 
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Autoparts', NULL, 5) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Birkens', NULL, 6) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('BMS', NULL, 7) ON CONFLICT (name) DO NOTHING;
-INSERT INTO brands (name, short_name, sort_order) VALUES ('BMS/SPR', 'BMS', 8) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Daido', NULL, 9) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Daihatsu', NULL, 10) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Daimaru', NULL, 11) ON CONFLICT (name) DO NOTHING;
@@ -61,11 +60,10 @@ INSERT INTO brands (name, short_name, sort_order) VALUES ('Okayama', NULL, 45) O
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Okayama Gold', NULL, 46) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Ratu Motor', 'RM', 47) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('RCA', NULL, 48) ON CONFLICT (name) DO NOTHING;
-INSERT INTO brands (name, short_name, sort_order) VALUES ('Sam Bap', 'SAM', 49) ON CONFLICT (name) DO NOTHING;
-INSERT INTO brands (name, short_name, sort_order) VALUES ('Sam Hja', 'SAM', 50) ON CONFLICT (name) DO NOTHING;
+INSERT INTO brands (name, short_name, sort_order) VALUES ('SAM', NULL, 49) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Sanyco', NULL, 51) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Seiken', NULL, 52) ON CONFLICT (name) DO NOTHING;
-INSERT INTO brands (name, short_name, sort_order) VALUES ('SH JRM', 'SH', 53) ON CONFLICT (name) DO NOTHING;
+INSERT INTO brands (name, short_name, sort_order) VALUES ('SH', NULL, 53) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Sieg Klang', NULL, 54) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Sportshot', NULL, 55) ON CONFLICT (name) DO NOTHING;
 INSERT INTO brands (name, short_name, sort_order) VALUES ('Stecker', NULL, 56) ON CONFLICT (name) DO NOTHING;
