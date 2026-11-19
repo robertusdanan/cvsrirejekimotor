@@ -177,4 +177,109 @@
       window.setTimeout(clear, 2500);
     }
   }
+  /* ---------------- Searchable Filter Dropdowns ---------------- */
+  /* Combobox untuk filter Merek/Kendaraan/Kategori di /produk: ketik ->
+     daftar opsi tersaring sesudah jeda 0,3 detik (debounce 300ms). */
+  var combos = document.querySelectorAll('[data-combo]');
+  combos.forEach(function (combo) {
+    var input = combo.querySelector('.combo-input');
+    var hidden = combo.querySelector('input[type="hidden"]');
+    var list = combo.querySelector('.combo-list');
+    if (!input || !hidden || !list) return;
+    var items = Array.prototype.slice.call(list.querySelectorAll('li'));
+    var noResult = document.createElement('li');
+    noResult.className = 'combo-no-result';
+    noResult.textContent = 'Tidak ada hasil';
+    noResult.hidden = true;
+    list.appendChild(noResult);
+    var timer = null;
+    var activeIndex = -1;
+
+    var visibleItems = function () {
+      return items.filter(function (li) { return !li.classList.contains('is-hidden'); });
+    };
+    var showList = function () { list.hidden = false; };
+    var hideList = function () { list.hidden = true; activeIndex = -1; };
+    var clearActive = function () {
+      items.forEach(function (li) { li.classList.remove('is-active'); });
+      activeIndex = -1;
+    };
+    var setActive = function (idx) {
+      clearActive();
+      var vis = visibleItems();
+      if (!vis.length) return;
+      activeIndex = (idx + vis.length) % vis.length;
+      vis[activeIndex].classList.add('is-active');
+      vis[activeIndex].scrollIntoView({ block: 'nearest' });
+    };
+    var selectItem = function (li) {
+      if (!li || li.classList.contains('combo-no-result')) return;
+      input.value = li.getAttribute('data-label') || '';
+      hidden.value = li.getAttribute('data-value') || '';
+      hideList();
+    };
+    var applyFilter = function () {
+      var q = input.value.trim().toLowerCase();
+      var anyVisible = false;
+      items.forEach(function (li) {
+        var match = q === '' || li.textContent.toLowerCase().indexOf(q) !== -1;
+        li.classList.toggle('is-hidden', !match);
+        if (match) anyVisible = true;
+      });
+      noResult.hidden = anyVisible;
+      if (q === '') hidden.value = ''; // input dikosongkan = hapus filter
+      clearActive();
+      showList();
+    };
+    var scheduleFilter = function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(applyFilter, 300); // jeda 0,3 detik
+    };
+    input.addEventListener('input', scheduleFilter);
+    input.addEventListener('focus', function () { applyFilter(); });
+    input.addEventListener('blur', function () {
+      window.setTimeout(hideList, 150);
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); showList(); setActive(activeIndex + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); showList(); setActive(activeIndex - 1); }
+      else if (e.key === 'Enter') {
+        var vis = visibleItems();
+        if (!list.hidden && vis.length) {
+          e.preventDefault();
+          selectItem(activeIndex >= 0 ? vis[activeIndex] : vis[0]);
+        }
+      } else if (e.key === 'Escape') { hideList(); }
+    });
+    items.forEach(function (li) {
+      li.addEventListener('mousedown', function (e) {
+        e.preventDefault(); // cegah blur sebelum klik terproses
+        selectItem(li);
+      });
+    });
+    // Saat form disubmit: bila teks tidak cocok persis dengan opsi mana pun,
+    // kosongkan input supaya tidak ada teks menggantung tanpa filter.
+    var form = combo.closest('form');
+    if (form && !form.getAttribute('data-combo-submit-bound')) {
+      form.setAttribute('data-combo-submit-bound', '1');
+      form.addEventListener('submit', function () {
+        combos.forEach(function (c) {
+          var inp = c.querySelector('.combo-input');
+          var hid = c.querySelector('input[type="hidden"]');
+          if (!inp || !hid) return;
+          if (hid.value !== '') return; // sudah ada pilihan valid
+          var typed = inp.value.trim().toLowerCase();
+          if (typed === '') return;
+          var found = null;
+          c.querySelectorAll('.combo-list li').forEach(function (li) {
+            if (li.classList.contains('combo-no-result')) return;
+            var lbl = (li.getAttribute('data-label') || '').toLowerCase();
+            if (lbl === typed) found = li;
+          });
+          if (found) { hid.value = found.getAttribute('data-value') || ''; }
+          else { inp.value = ''; }
+        });
+      });
+    }
+  });
 })();

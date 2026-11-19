@@ -130,6 +130,35 @@ if (!function_exists('taxonomyLabel')) {
     }
 }
 
+// Nama polos opsi taksonomi (tanpa singkatan & jumlah) — dipakai sebagai isi
+// input combobox saat sebuah filter sedang aktif.
+if (!function_exists('taxonomyName')) {
+    function taxonomyName($item): string
+    {
+        if (is_string($item)) {
+            return $item;
+        }
+        return (string) ($item['name'] ?? $item['value'] ?? '');
+    }
+}
+
+// Nama opsi yang sedang terpilih (untuk isi awal input combobox).
+if (!function_exists('comboSelectedName')) {
+    function comboSelectedName($items, $selected): string
+    {
+        if ($selected === '' || $selected === null || !$items) {
+            return '';
+        }
+        foreach ($items as $it) {
+            $v = is_array($it) ? (string) ($it['value'] ?? '') : (string) $it;
+            if ($v === (string) $selected) {
+                return taxonomyName($it);
+            }
+        }
+        return '';
+    }
+}
+
 require __DIR__ . '/../templates/header.php';
 ?>
 <section class="container catalog reveal">
@@ -152,30 +181,42 @@ require __DIR__ . '/../templates/header.php';
 
       <div class="filter-controls">
         <?php if ($brands): ?>
-        <select name="merk" aria-label="Filter Merek">
-          <option value="">Semua Merek</option>
-          <?php foreach ($brands as $b): $bv = is_array($b) ? (string) ($b['value'] ?? '') : (string) $b; ?>
-            <option value="<?= e($bv) ?>" <?= $brand === $bv ? 'selected' : '' ?>><?= e(taxonomyLabel($b)) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <div class="combo" data-combo>
+          <input type="text" class="combo-input" placeholder="Cari merek..." autocomplete="off" aria-label="Filter Merek" value="<?= e(comboSelectedName($brands, $brand)) ?>">
+          <input type="hidden" name="merk" value="<?= e($brand) ?>">
+          <ul class="combo-list" hidden>
+            <li data-value="" data-label="">Semua Merek</li>
+            <?php foreach ($brands as $b): $bv = is_array($b) ? (string) ($b['value'] ?? '') : (string) $b; ?>
+              <li data-value="<?= e($bv) ?>" data-label="<?= e(taxonomyName($b)) ?>"><?= e(taxonomyLabel($b)) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
         <?php endif; ?>
 
         <?php if ($vehicles): ?>
-        <select name="kendaraan" aria-label="Filter Kendaraan">
-          <option value="">Semua Kendaraan</option>
-          <?php foreach ($vehicles as $v): $vv = is_array($v) ? (string) ($v['value'] ?? '') : (string) $v; ?>
-            <option value="<?= e($vv) ?>" <?= $vehicle === $vv ? 'selected' : '' ?>><?= e(taxonomyLabel($v)) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <div class="combo" data-combo>
+          <input type="text" class="combo-input" placeholder="Cari kendaraan..." autocomplete="off" aria-label="Filter Kendaraan" value="<?= e(comboSelectedName($vehicles, $vehicle)) ?>">
+          <input type="hidden" name="kendaraan" value="<?= e($vehicle) ?>">
+          <ul class="combo-list" hidden>
+            <li data-value="" data-label="">Semua Kendaraan</li>
+            <?php foreach ($vehicles as $v): $vv = is_array($v) ? (string) ($v['value'] ?? '') : (string) $v; ?>
+              <li data-value="<?= e($vv) ?>" data-label="<?= e(taxonomyName($v)) ?>"><?= e(taxonomyLabel($v)) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
         <?php endif; ?>
 
         <?php if ($categories): ?>
-        <select name="kategori" aria-label="Filter Kategori">
-          <option value="">Semua Kategori</option>
-          <?php foreach ($categories as $c): $cv = is_array($c) ? (string) ($c['value'] ?? '') : (string) $c; ?>
-            <option value="<?= e($cv) ?>" <?= $category === $cv ? 'selected' : '' ?>><?= e(taxonomyLabel($c)) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <div class="combo" data-combo>
+          <input type="text" class="combo-input" placeholder="Cari kategori..." autocomplete="off" aria-label="Filter Kategori" value="<?= e(comboSelectedName($categories, $category)) ?>">
+          <input type="hidden" name="kategori" value="<?= e($category) ?>">
+          <ul class="combo-list" hidden>
+            <li data-value="" data-label="">Semua Kategori</li>
+            <?php foreach ($categories as $c): $cv = is_array($c) ? (string) ($c['value'] ?? '') : (string) $c; ?>
+              <li data-value="<?= e($cv) ?>" data-label="<?= e(taxonomyName($c)) ?>"><?= e(taxonomyLabel($c)) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
         <?php endif; ?>
 
         <button type="submit" class="btn btn-primary btn-filter">Terapkan Filter</button>

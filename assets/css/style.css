@@ -757,6 +757,31 @@ h1, h2 {
   outline: none; cursor: pointer;
 }
 .filter-controls select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 3px rgba(198, 161, 91, 0.22); }
+.filter-controls .combo { position: relative; flex: 1 1 200px; min-width: 180px; }
+.filter-controls .combo-input {
+  width: 100%; min-height: 44px; padding: 10px 16px; border-radius: var(--radius-md);
+  border: 1px solid var(--hairline-strong); background: var(--surface);
+  font-family: var(--font-body); font-size: 0.88rem; color: var(--ink);
+  outline: none;
+}
+.filter-controls .combo-input:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 3px rgba(198, 161, 91, 0.22); }
+.filter-controls .combo-input::placeholder { color: var(--steel); }
+.filter-controls .combo-list {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 40;
+  max-height: 260px; overflow-y: auto; margin: 0; padding: 6px; list-style: none;
+  background: var(--surface); border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+}
+.filter-controls .combo-list li {
+  padding: 9px 12px; border-radius: var(--radius-sm); font-size: 0.88rem;
+  color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis;
+}
+.filter-controls .combo-list li:hover,
+.filter-controls .combo-list li.is-active { background: var(--surface-2); color: var(--gold-deep); }
+.filter-controls .combo-list li.is-hidden { display: none; }
+.filter-controls .combo-list li.combo-no-result { color: var(--steel); cursor: default; }
+.filter-controls .combo-list li.combo-no-result:hover { background: transparent; color: var(--steel); }
 .btn-filter { padding: 10px 22px; font-size: 0.88rem; min-height: 44px; }
 .btn-filter-reset { padding: 10px 18px; font-size: 0.88rem; min-height: 44px; }
 
@@ -1387,6 +1412,7 @@ h1, h2 {
   .catalog-head { align-items: flex-start; }
   .filter-controls { flex-direction: column; align-items: stretch; }
   .filter-controls select,
+  .filter-controls .combo,
   .filter-controls .btn { width: 100%; }
 
   .breadcrumbs { font-size: 0.8rem; }
