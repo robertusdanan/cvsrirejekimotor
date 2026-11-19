@@ -79,6 +79,11 @@ final class CacheBuilder
         'GAPMW030499' => ['GAPMW030499', 'GWMW030499'],
         'MH024000' => ['MH024000', 'GAPMH024000'],
         '48750-79030' => ['48750-79030', '48750-79030-000'],
+        // Grup 9 (2026-11-19, perintah Danan): TE = Terada, I = Isuzu original;
+        // kode OEM bersih 8-94408-840-3. 8-94908-840 adalah TYPO dari kode ini
+        // (beda 1 digit 9 vs 4) + duplikat Terada harga lebih rendah -> DIHAPUS
+        // dari DB oleh api/fix-merk-te.php (bukan anggota merge).
+        '8-94408-840-3' => ['I8-94408 840-3', 'TE8-94408-840-3'],
     ];
 
     public function rebuildAll(): void
