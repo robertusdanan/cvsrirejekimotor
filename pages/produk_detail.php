@@ -3,13 +3,9 @@ $product = cache()->read("products/{$slug}.json");
 if ($product !== null) { $product['nama_produk'] = displayProductName($product['nama_produk'] ?? null); }
 
 if ($product === null) {
-    // Slug lama dari varian yang sudah digabung -> redirect 301 ke slug kanonis.
-    $redirects = cache()->read('products/redirects.json')['redirects'] ?? [];
-    if (!empty($redirects[$slug])) {
-        header('Location: /produk/' . $redirects[$slug], true, 301);
-        exit;
-    }
-    // Slug lama dari 2 baris duplikat yang dihapus dari DB (Danan 2026-11-19):
+    // Slug lama dari rename/hapus (peta kurasi — dicek PERTAMA, diutamakan
+    // atas redirects.json yang bisa basi). Termasuk 2 baris duplikat yang
+    // dihapus dari DB (Danan 2026-11-19):
     // 8-94223-366-TE dan TEMT-141213 — tetap 301 ke slug kanonis.
     // + 2 baris duplikat rencana merge M8/M9 (disetujui Danan "setuju"):
     // 8-94226-557 -> TE8-94226-557-2; TEMB-109936 -> halaman MB109936.
@@ -144,6 +140,15 @@ if ($product === null) {
     ];
     if (!empty($legacyRedirects[$slug])) {
         header('Location: /produk/' . $legacyRedirects[$slug], true, 301);
+        exit;
+    }
+    // Slug lama dari varian yang sudah digabung -> redirect 301 ke slug kanonis.
+    // Dicek SETELAH legacy: redirects.json bisa basi sesudah rename massal
+    // (entri lama menunjuk slug kanonis lama yang kini 404); peta legacy
+    // yang dikurasi selalu benar dan diutamakan.
+    $redirects = cache()->read('products/redirects.json')['redirects'] ?? [];
+    if (!empty($redirects[$slug])) {
+        header('Location: /produk/' . $redirects[$slug], true, 301);
         exit;
     }
     http_response_code(404);

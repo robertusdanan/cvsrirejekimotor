@@ -336,9 +336,10 @@ final class CacheBuilder
         $this->writeTaxonomyIndexes($index);
 
         // Redirects: slug lama (varian non-kanonis) -> slug kanonis.
-        if ($redirects !== []) {
-            $this->cache->write('products/redirects.json', ['redirects' => $redirects]);
-        }
+        // SELALU tulis (walau kosong) supaya entri basi dari rebuild lama
+        // terhapus — bila tidak ditulis saat kosong, redirects.json lama
+        // (menunjuk slug kanonis lama yang kini 404) tetap dipakai.
+        $this->cache->write('products/redirects.json', ['redirects' => $redirects]);
 
         // Remove orphan product files (kecuali index.json + redirects.json)
         $dir = rtrim((string) config('CACHE_PATH'), '/') . '/products';
