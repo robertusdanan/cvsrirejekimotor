@@ -35,7 +35,7 @@ $maps = [
 $expected = ['SAM BAP' => 5, 'SAM HJA' => 3, 'SH JRM' => 2, 'TERADA' => 2, 'BMS/SPR' => 2];
 $out['guard'] = [];
 foreach ($maps as [$lama, $baru]) {
-    $st = $pdo->prepare('SELECT COUNT(*) FROM products WHERE merk = ?');
+    $st = $pdo->prepare('SELECT COUNT(*) FROM products WHERE BINARY merk = ?');
     $st->execute([$lama]);
     $n = (int)$st->fetchColumn();
     $out['guard'][$lama] = $n;
