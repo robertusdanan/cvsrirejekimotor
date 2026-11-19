@@ -116,7 +116,14 @@ $fetchAll = static function (string $table, string $select = '*', int $pageSize 
         );
         // GAGAL KERAS bila baca Supabase error (kunci salah / jaringan putus):
         // JANGAN diam-diam memigrasi 0 baris lalu melapor "cocok".
+        // PENGECUALIAN: PGRST205 = tabel TIDAK ADA di Supabase. Itu fakta
+        // (login_throttle + admin_audit_log memang tidak pernah dibuat di
+        // Supabase — PostgREST tidak mengeksposnya), bukan kegagalan baca:
+        // anggap 0 baris, tabel MySQL tetap dibuat kosong oleh skema.
         if (!is_array($rows) || isset($rows['error']) || isset($rows['message'])) {
+            if (is_array($rows) && ($rows['code'] ?? '') === 'PGRST205') {
+                return [];
+            }
             $msg = is_array($rows) ? (string) ($rows['error'] ?? $rows['message'] ?? 'unknown') : 'bukan array';
             migrate_fail(500, "baca Supabase tabel {$table} gagal: {$msg}");
         }
