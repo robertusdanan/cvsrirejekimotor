@@ -383,7 +383,7 @@ final class CacheBuilder
 
         $slug = $this->uniqueSlug(slugify($nama . '-' . $canonicalKode), $slugs);
 
-        // Variants: satu per merk (gabungkan anggota bermerk sama -> harga terendah).
+        // Variants: satu per merk (gabungkan anggota bermerk sama -> harga TERMAHAL, per Danan 2026-11-19).
         $variantsByMerk = [];
         foreach ($ordered as $m) {
             $mkode = trim((string) ($m['kode_barang'] ?? ''));
@@ -400,7 +400,7 @@ final class CacheBuilder
                     'primary_image' => $this->primaryImage($imgs),
                 ];
             } else {
-                if ($harga < $variantsByMerk[$key]['harga_jual']) {
+                if ($harga > $variantsByMerk[$key]['harga_jual']) {
                     $variantsByMerk[$key]['harga_jual'] = $harga;
                     $variantsByMerk[$key]['kode_barang'] = $mkode;
                 }
