@@ -1102,13 +1102,13 @@ h1, h2 {
 .back-to-top {
   position: fixed; bottom: 96px; right: 28px; z-index: 998;
   box-shadow: 0 8px 24px rgba(15, 42, 74, 0.35);
-  background: #0F2A4A; border: 1px solid #0F2A4A;
+  background: #0F2A4A; border: 1px solid rgba(255, 255, 255, 0.5);
   color: #FFFFFF; border-radius: var(--radius-pill);
   padding: 8px 18px; min-height: 40px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
   font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease;
 }
 .back-to-top:hover {
-  background: #1A56DB; border-color: #1A56DB;
+  background: #1A56DB; border-color: rgba(255, 255, 255, 0.65);
   color: #FFFFFF; transform: translateY(-2px);
 }
 
