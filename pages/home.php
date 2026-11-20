@@ -12,8 +12,7 @@ $bodyClass = 'has-hero';
 $heroSlides = heroActiveSlides();
 $heroSettings = heroManifest()['settings'];
 $heroKicker = trim((string) ($heroSettings['kicker'] ?? '')) ?: ($company['company_name'] ?? 'CV Sri Rejeki Motor');
-$heroHeading = trim((string) ($heroSettings['heading_override'] ?? '')) ?: 'Toko Onderdil & Suku Cadang Mobil Terpercaya';
-$heroTagline = trim((string) ($company['tagline'] ?? '')) ?: 'Pusat Suku Cadang & Onderdil Mobil Berkualitas untuk Berbagai Merk Kendaraan';
+$heroHeading = trim((string) ($heroSettings['heading_override'] ?? '')) ?: 'Toko Onderdil Mobil Terpercaya';
 $heroInterval = max(3000, (int) ($heroSettings['interval_ms'] ?? 6000));
 $heroOverlayOpacity = max(0, min(1, (float) ($heroSettings['overlay_opacity'] ?? 0.65)));
 
@@ -48,7 +47,6 @@ require __DIR__ . '/../templates/header.php';
 
     <p class="hero-kicker"><?= e($heroKicker) ?></p>
     <h1><?= e($heroHeading) ?></h1>
-    <p class="tagline"><?= e($heroTagline) ?></p>
 
     <!-- Quick Search Bar in Hero -->
     <form action="/produk" method="get" class="hero-search-form">
