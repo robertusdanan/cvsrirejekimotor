@@ -1469,9 +1469,9 @@ h1, h2 {
   }
   .price-wrap { padding-top: 8px; flex-wrap: wrap; }
   .price-wrap .price { font-size: 0.88rem; }
-  .product-card-actions { gap: 6px; margin-top: 10px; }
+  .product-card-actions { flex-direction: column; gap: 8px; margin-top: 10px; }
   .product-card-actions .btn-card {
-    min-height: 36px; padding: 7px 4px; font-size: 0.72rem; white-space: nowrap;
+    flex: none; width: 100%; min-height: 38px; padding: 8px 10px; font-size: 0.78rem; white-space: nowrap;
   }
   .variant-pills { gap: 6px; margin-bottom: 10px; }
   .variant-pill { font-size: 0.7rem; padding: 5px 10px; min-height: 30px; }
