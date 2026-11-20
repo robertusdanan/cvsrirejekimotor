@@ -5,7 +5,41 @@ foreach ($featured as &$p) { $p['nama_produk'] = displayProductName($p['nama_pro
 unset($p);
 $brands = cache()->read('brands/index.json')['items'] ?? [];
 $categories = cache()->read('categories/index.json')['items'] ?? [];
+$vehicles = cache()->read('vehicles/index.json')['items'] ?? [];
 
+
+// Label opsi dropdown taksonomi: nama resmi (+ singkatan bila belum ada di
+// nama) + jumlah produk. Disalin dari produk_list.php agar filter homepage
+// memakai label yang sama persis dengan filter /produk.
+if (!function_exists('taxonomyLabel')) {
+    function taxonomyLabel($item): string
+    {
+        if (is_string($item)) {
+            return $item;
+        }
+        $label = (string) ($item['name'] ?? $item['value'] ?? '');
+        $short = $item['short_name'] ?? null;
+        if ($short !== null && $short !== '' && stripos($label, (string) $short) === false) {
+            $label .= ' (' . $short . ')';
+        }
+        if (isset($item['count'])) {
+            $label .= ' (' . (int) $item['count'] . ')';
+        }
+        return $label;
+    }
+}
+
+// Nama polos opsi taksonomi (tanpa singkatan dan jumlah) - dipakai sebagai
+// isi input combobox (data-label).
+if (!function_exists('taxonomyName')) {
+    function taxonomyName($item): string
+    {
+        if (is_string($item)) {
+            return $item;
+        }
+        return (string) ($item['name'] ?? $item['value'] ?? '');
+    }
+}
 $pageTitle = ($company['company_name'] ?? 'CV Sri Rejeki Motor') . ' | Toko Onderdil & Suku Cadang Mobil Terpercaya';
 $bodyClass = 'has-hero';
 
@@ -96,27 +130,57 @@ require __DIR__ . '/../templates/header.php';
   <span class="section-eyebrow">Eksplorasi Suku Cadang</span>
   <h2><span class="section-marker"></span>Cari Berdasarkan Merek &amp; Kategori</h2>
   
-  <?php if (!empty($brands)): ?>
-    <div class="pill-group">
-      <span class="pill-label">Merek Populer:</span>
-      <div class="pill-list">
-        <?php foreach (array_slice($brands, 0, 10) as $b): $bv = is_array($b) ? (string) ($b['value'] ?? '') : (string) $b; $bl = is_array($b) ? (string) ($b['name'] ?? $bv) : $bv; ?>
-          <a href="/produk?merk=<?= urlencode($bv) ?>" class="tag-pill"><?= e($bl) ?></a>
-        <?php endforeach; ?>
+  <div class="filter-card">
+    <form class="filter-bar" method="get" action="/produk">
+      <div class="filter-field filter-field-search">
+        <label for="explorerQuery" class="sr-only">Cari Produk</label>
+        <input type="text" id="explorerQuery" name="q" placeholder="Cari part, kode, merek, atau mobil..." autocomplete="off">
       </div>
-    </div>
-  <?php endif; ?>
 
-  <?php if (!empty($categories)): ?>
-    <div class="pill-group" style="margin-top: 14px;">
-      <span class="pill-label">Kategori Suku Cadang:</span>
-      <div class="pill-list">
-        <?php foreach (array_slice($categories, 0, 10) as $c): $cv = is_array($c) ? (string) ($c['value'] ?? '') : (string) $c; $cl = is_array($c) ? (string) ($c['name'] ?? $cv) : $cv; ?>
-          <a href="/produk?kategori=<?= urlencode($cv) ?>" class="tag-pill tag-pill-alt"><?= e($cl) ?></a>
-        <?php endforeach; ?>
+      <div class="filter-controls">
+        <?php if ($brands): ?>
+        <div class="combo" data-combo>
+          <input type="text" class="combo-input" placeholder="Cari merek..." autocomplete="off" aria-label="Filter Merek" value="">
+          <input type="hidden" name="merk" value="">
+          <ul class="combo-list" hidden>
+            <li data-value="" data-label="">Semua Merek</li>
+            <?php foreach ($brands as $b): $bv = is_array($b) ? (string) ($b['value'] ?? '') : (string) $b; ?>
+              <li data-value="<?= e($bv) ?>" data-label="<?= e(taxonomyName($b)) ?>"><?= e(taxonomyLabel($b)) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($vehicles): ?>
+        <div class="combo" data-combo>
+          <input type="text" class="combo-input" placeholder="Cari kendaraan..." autocomplete="off" aria-label="Filter Kendaraan" value="">
+          <input type="hidden" name="kendaraan" value="">
+          <ul class="combo-list" hidden>
+            <li data-value="" data-label="">Semua Kendaraan</li>
+            <?php foreach ($vehicles as $v): $vv = is_array($v) ? (string) ($v['value'] ?? '') : (string) $v; ?>
+              <li data-value="<?= e($vv) ?>" data-label="<?= e(taxonomyName($v)) ?>"><?= e(taxonomyLabel($v)) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($categories): ?>
+        <div class="combo" data-combo>
+          <input type="text" class="combo-input" placeholder="Cari kategori..." autocomplete="off" aria-label="Filter Kategori" value="">
+          <input type="hidden" name="kategori" value="">
+          <ul class="combo-list" hidden>
+            <li data-value="" data-label="">Semua Kategori</li>
+            <?php foreach ($categories as $c): $cv = is_array($c) ? (string) ($c['value'] ?? '') : (string) $c; ?>
+              <li data-value="<?= e($cv) ?>" data-label="<?= e(taxonomyName($c)) ?>"><?= e(taxonomyLabel($c)) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+        <?php endif; ?>
+
+        <button type="submit" class="btn btn-primary btn-filter">Cari Produk</button>
       </div>
-    </div>
-  <?php endif; ?>
+    </form>
+  </div>
 </section>
 <?php endif; ?>
 
