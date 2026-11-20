@@ -1413,6 +1413,18 @@ h1, h2 {
   .pill-list .tag-pill:nth-child(n+7) { display: none; }
   .feature-text p { display: none; }
 
+  /* Keunggulan: 1 baris geser horizontal di HP, bukan bertumpuk ke bawah */
+  .features-grid {
+    display: flex; flex-wrap: nowrap; gap: 12px; overflow-x: auto;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; padding: 4px 20px 10px 0;
+  }
+  .features-grid::-webkit-scrollbar { display: none; }
+  .features-grid .feature-item {
+    flex: 0 0 78%; scroll-snap-align: start; transform: none;
+    padding: 20px 18px; gap: 14px; align-items: center;
+  }
+
   .catalog-head { align-items: flex-start; }
   .filter-controls { flex-direction: column; align-items: stretch; }
   .filter-controls select,
