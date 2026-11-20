@@ -19,7 +19,6 @@ if (str_starts_with($cleanWa, '0')) {
         <?php endif; ?>
         <div class="footer-brand-text">
           <strong class="footer-brand-title"><?= e($company['company_name'] ?? 'CV Sri Rejeki Motor') ?></strong>
-          <p class="footer-brand-tagline"><?= e($company['tagline'] ?? 'Pusat Suku Cadang & Onderdil Mobil Terlengkap') ?></p>
         </div>
       </div>
       <p class="footer-desc">
