@@ -195,7 +195,7 @@ require __DIR__ . '/../templates/header.php';
     <form class="filter-bar" method="get" action="/produk">
       <div class="filter-field filter-field-search">
         <label for="searchQuery" class="sr-only">Cari Produk</label>
-        <input type="text" id="searchQuery" name="q" placeholder="Cari nama barang, kode part (PN), merek, atau tipe mobil..." value="<?= e($q) ?>">
+        <input type="text" id="searchQuery" name="q" placeholder="Cari part, kode, merek, atau mobil..." value="<?= e($q) ?>">
       </div>
 
       <div class="filter-controls">
@@ -326,9 +326,9 @@ require __DIR__ . '/../templates/header.php';
               <?php endif; ?>
             </div>
             <div class="product-card-actions">
-              <a class="btn btn-outline btn-card" href="/produk/<?= e($p['slug']) ?>">Detail Barang</a>
+              <a class="btn btn-outline btn-card" href="/produk/<?= e($p['slug']) ?>"><span class="btn-label-desktop">Detail Barang</span><span class="btn-label-mobile">Detail</span></a>
               <?php if ($cardWaUrl !== ''): ?>
-                <a class="btn btn-primary btn-card variant-wa" href="<?= e($cardWaUrl) ?>" target="_blank" rel="noopener noreferrer">Chat WhatsApp</a>
+                <a class="btn btn-primary btn-card variant-wa" href="<?= e($cardWaUrl) ?>" target="_blank" rel="noopener noreferrer"><span class="btn-label-desktop">Chat WhatsApp</span><span class="btn-label-mobile">Chat WA</span></a>
               <?php endif; ?>
             </div>
           </div>

@@ -53,7 +53,7 @@ require __DIR__ . '/../templates/header.php';
     <!-- Quick Search Bar in Hero -->
     <form action="/produk" method="get" class="hero-search-form">
       <div class="hero-search-wrap">
-        <input type="text" name="q" placeholder="Cari nama barang, kode part, atau tipe mobil..." autocomplete="off">
+        <input type="text" name="q" placeholder="Cari onderdil, kode part, atau mobil..." autocomplete="off">
         <button type="submit" class="btn btn-primary btn-hero-search">
           <span>Cari Onderdil</span>
         </button>
@@ -188,9 +188,9 @@ require __DIR__ . '/../templates/header.php';
             <?php endif; ?>
           </div>
           <div class="product-card-actions">
-            <a class="btn btn-outline btn-card" href="/produk/<?= e($p['slug']) ?>">Detail Barang</a>
+            <a class="btn btn-outline btn-card" href="/produk/<?= e($p['slug']) ?>"><span class="btn-label-desktop">Detail Barang</span><span class="btn-label-mobile">Detail</span></a>
             <?php if ($cardWaUrl !== ''): ?>
-              <a class="btn btn-primary btn-card" href="<?= e($cardWaUrl) ?>" target="_blank" rel="noopener noreferrer">Chat WhatsApp</a>
+              <a class="btn btn-primary btn-card" href="<?= e($cardWaUrl) ?>" target="_blank" rel="noopener noreferrer"><span class="btn-label-desktop">Chat WhatsApp</span><span class="btn-label-mobile">Chat WA</span></a>
             <?php endif; ?>
           </div>
         </div>
