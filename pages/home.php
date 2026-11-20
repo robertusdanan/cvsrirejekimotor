@@ -46,7 +46,7 @@ $bodyClass = 'has-hero';
 $heroSlides = heroActiveSlides();
 $heroSettings = heroManifest()['settings'];
 $heroKicker = trim((string) ($heroSettings['kicker'] ?? '')) ?: ($company['company_name'] ?? 'CV Sri Rejeki Motor');
-$heroHeading = trim((string) ($heroSettings['heading_override'] ?? '')) ?: 'Toko Onderdil Mobil Terpercaya';
+$heroHeading = trim((string) ($heroSettings['heading_override'] ?? '')) ?: 'Toko Onderdil Mobil Tulungagung';
 $heroInterval = max(3000, (int) ($heroSettings['interval_ms'] ?? 6000));
 $heroOverlayOpacity = max(0, min(1, (float) ($heroSettings['overlay_opacity'] ?? 0.65)));
 
