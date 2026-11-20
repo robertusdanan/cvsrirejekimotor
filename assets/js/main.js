@@ -274,4 +274,65 @@
       });
     }
   });
+
+  /* ------ Placeholder pendek + font auto-fit (filter, mobile) ------ */
+  // Di layar kecil (<=680px) placeholder combo dipendekkan ("Merk",
+  // "Kendaraan", "Kategori") supaya tidak terpotong, dan ukuran font
+  // mengecil otomatis bila teks (placeholder / ketikan) tidak muat.
+  var filterInputs = Array.prototype.slice.call(document.querySelectorAll('.filter-controls .combo-input, .filter-field-search input'));
+  var fitCtx = null;
+  var fitInputFont = function (input) {
+    input.style.fontSize = '';
+    var cs = window.getComputedStyle(input);
+    var base = parseFloat(cs.fontSize) || 16;
+    var text = input.value || input.getAttribute('placeholder') || '';
+    if (!text) return;
+    var avail = input.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    if (avail <= 0) return;
+    if (!fitCtx) fitCtx = document.createElement('canvas').getContext('2d');
+    var size = base;
+    fitCtx.font = cs.fontWeight + ' ' + size + 'px ' + cs.fontFamily;
+    var w = fitCtx.measureText(text).width;
+    while (w > avail && size > 11) {
+      size -= 0.5;
+      fitCtx.font = cs.fontWeight + ' ' + size + 'px ' + cs.fontFamily;
+      w = fitCtx.measureText(text).width;
+    }
+    if (size < base) input.style.fontSize = size + 'px';
+  };
+  var fitAllFilterInputs = function () { filterInputs.forEach(fitInputFont); };
+  var shortLabel = function (input) {
+    var combo = input.closest('[data-combo]');
+    var hidden = combo ? combo.querySelector('input[type="hidden"]') : null;
+    var key = hidden ? hidden.getAttribute('name') : '';
+    if (key === 'merk') return 'Merk';
+    if (key === 'kendaraan') return 'Kendaraan';
+    if (key === 'kategori') return 'Kategori';
+    return '';
+  };
+  var applyMobilePlaceholders = function () {
+    var isMobile = window.matchMedia ? window.matchMedia('(max-width: 680px)').matches : false;
+    filterInputs.forEach(function (input) {
+      var full = input.getAttribute('data-full-placeholder');
+      if (full === null) {
+        full = input.getAttribute('placeholder') || '';
+        input.setAttribute('data-full-placeholder', full);
+      }
+      var short = shortLabel(input);
+      if (isMobile && short) input.setAttribute('placeholder', short);
+      else input.setAttribute('placeholder', full);
+    });
+    fitAllFilterInputs();
+  };
+  filterInputs.forEach(function (input) {
+    input.addEventListener('input', function () { fitInputFont(input); });
+  });
+  if (window.matchMedia) {
+    var filterMq = window.matchMedia('(max-width: 680px)');
+    if (filterMq.addEventListener) filterMq.addEventListener('change', applyMobilePlaceholders);
+    else if (filterMq.addListener) filterMq.addListener(applyMobilePlaceholders);
+  }
+  window.addEventListener('resize', fitAllFilterInputs);
+  window.addEventListener('load', fitAllFilterInputs);
+  applyMobilePlaceholders();
 })();
