@@ -488,14 +488,11 @@ h1, h2 {
    FEATURES / VALUE PROPOSITION
    ================================================================ */
 .features-bar {
-  background: var(--navy); border-radius: 24px;
-  padding: 52px 40px; margin: 72px auto 64px;
-  box-shadow: var(--shadow-lg);
+  padding: 0; margin: 72px auto 64px;
 }
 .features-bar .feature-item {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--navy);
   border-color: rgba(255, 255, 255, 0.10);
-  box-shadow: none;
 }
 .features-bar .feature-item:hover {
   border-color: rgba(255, 255, 255, 0.28);
@@ -1301,7 +1298,7 @@ h1, h2 {
 
   /* Sections */
   .featured, .catalog, .brand-explorer, .company-profile, .location { padding: 64px 0; }
-  .features-bar { padding: 40px 24px; margin: 56px auto 48px; }
+  .features-bar { padding: 0; margin: 56px auto 48px; }
 
   /* Grids: single column at the mobile threshold */
   .features-grid { grid-template-columns: 1fr; }
@@ -1400,7 +1397,7 @@ h1, h2 {
   .section-link-all { font-size: 0.86rem; }
 
   .featured, .catalog, .brand-explorer, .company-profile, .location { padding: 52px 0; }
-  .features-bar { padding: 32px 20px; margin-top: 48px; }
+  .features-bar { padding: 0; margin-top: 48px; }
 
   .product-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .product-card-body { padding: 12px; }
