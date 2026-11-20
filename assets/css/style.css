@@ -1096,18 +1096,6 @@ h1, h2 {
   display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
 }
 .copyright { line-height: 1.5; }
-.back-to-top {
-  position: fixed; bottom: 96px; right: 28px; z-index: 998;
-  box-shadow: 0 8px 24px rgba(15, 42, 74, 0.35);
-  background: #0F2A4A; border: 1px solid rgba(255, 255, 255, 0.5);
-  color: #FFFFFF; border-radius: var(--radius-pill);
-  padding: 8px 18px; min-height: 40px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-  font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease;
-}
-.back-to-top:hover {
-  background: #1A56DB; border-color: rgba(255, 255, 255, 0.65);
-  color: #FFFFFF; transform: translateY(-2px);
-}
 
 /* Floating WhatsApp Button */
 .floating-wa {
@@ -1294,7 +1282,6 @@ h1, h2 {
 
   .floating-wa-label { display: none; }
   .floating-wa { padding: 14px; border-radius: 50%; bottom: 20px; right: 20px; min-height: 52px; min-width: 52px; justify-content: center; }
-  .back-to-top { bottom: 88px; right: 20px; }
 
   /* Sections */
   .featured, .catalog, .brand-explorer, .company-profile, .location { padding: 64px 0; }
@@ -1422,11 +1409,12 @@ h1, h2 {
   .features-grid .feature-text h3 { font-size: 0.92rem; line-height: 1.35; margin: 0; }
 
   .catalog-head { align-items: flex-start; }
-  .filter-controls { flex-direction: column; align-items: stretch; }
+  .filter-card { padding: 18px 16px; }
+  .filter-controls { flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 10px; }
   .filter-controls select,
-  .filter-controls .combo,
-  .filter-controls .btn { width: 100%; }
-  .filter-controls .combo { flex: 0 0 auto; }
+  .filter-controls .combo { flex: 1 1 0; min-width: 0; width: auto; }
+  .filter-controls .btn { flex: 1 1 100%; width: 100%; }
+  .filter-controls .combo-input { padding: 10px 12px; }
   .filter-field-search input,
   .filter-controls .combo-input { font-size: 1rem; }
 
@@ -1442,7 +1430,7 @@ h1, h2 {
   .contact-cards-grid { grid-template-columns: 1fr; }
 
   .footer-col { padding: 24px 0; }
-  .footer-bottom { padding-bottom: 150px; } /* copyright harus bersih dari DUA tombol fixed: WA (20-72px) + Atas (88-128px) */
+  .footer-bottom { padding-bottom: 90px; } /* copyright harus bersih dari tombol WA fixed (20-72px) */
   .map-embed { aspect-ratio: 4/3; }
 
   .marketplace-buttons { flex-direction: column; }
@@ -1453,7 +1441,6 @@ h1, h2 {
 @media (max-width: 480px) {
   .container { padding: 0 16px; }
   .hero { padding: 88px 16px 44px; }
-  .back-to-top { padding: 6px 12px; font-size: 0.75rem; min-height: 36px; bottom: 84px; right: 16px; }
   .hero h1 { font-size: clamp(2rem, 8.5vw, 2.5rem); }
   .hero .tagline { font-size: 0.94rem; margin-bottom: 24px; }
   .hero-search-wrap input { font-size: 0.85rem; }

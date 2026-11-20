@@ -113,10 +113,6 @@ if (str_starts_with($cleanWa, '0')) {
       <div class="copyright">
         &copy; <?= date('Y') ?> <?= e($company['company_name'] ?? 'CV Sri Rejeki Motor') ?>. Hak Cipta Dilindungi.
       </div>
-      <button type="button" class="back-to-top" id="backToTop" aria-label="Kembali ke atas">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-        <span>Atas</span>
-      </button>
     </div>
   </div>
 </footer>

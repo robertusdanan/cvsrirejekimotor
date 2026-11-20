@@ -151,14 +151,6 @@
     }
   }
 
-  /* ---------------- Back to Top Button ---------------- */
-  var backToTop = document.getElementById('backToTop');
-  if (backToTop) {
-    backToTop.addEventListener('click', function () {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }
-
   /* ---------------- Preloader Cleanup ---------------- */
   var preloader = document.getElementById('preloader');
   if (preloader) {
