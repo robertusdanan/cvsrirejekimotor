@@ -200,6 +200,7 @@ require __DIR__ . '/../templates/header.php';
         $priceFinal = $p['harga_final'] ?? $p['harga_jual'] ?? 0;
         $priceOriginal = $p['harga_jual'] ?? 0;
         $hasDiscount = !empty($p['harga_final']) && $p['harga_final'] < $priceOriginal;
+        $hasVariants = count($p['variants'] ?? []) > 1;
         $cardWaText = "Halo CV Sri Rejeki Motor, saya tertarik dengan suku cadang:\n"
             . '*' . $p['nama_produk'] . "*\n"
             . (!empty($p['kode_barang']) ? 'Kode Part (PN): ' . $p['kode_barang'] . "\n" : '')
@@ -208,7 +209,7 @@ require __DIR__ . '/../templates/header.php';
             . 'Link: https://cvsrirejekimotor.com/produk/' . $p['slug'];
         $cardWaUrl = $cleanWa !== '' ? 'https://wa.me/' . $cleanWa . '?text=' . urlencode($cardWaText) : '';
       ?>
-      <article class="product-card reveal" style="--reveal-delay: <?= min($i, 7) * 0.05 ?>s">
+      <article class="product-card reveal<?= $hasVariants ? ' has-variants' : '' ?>" style="--reveal-delay: <?= min($i, 7) * 0.05 ?>s">
         <a class="product-card-image" href="/produk/<?= e($p['slug']) ?>" aria-label="<?= e($p['nama_produk']) ?>">
           <?php if (!empty($p['images'][0]['path'])): ?>
             <img src="<?= e(mediaUrl($p['images'][0]['path'])) ?>" alt="<?= e($p['nama_produk']) ?>" loading="lazy">

@@ -1390,6 +1390,9 @@ h1, h2 {
   .product-card-body { padding: 12px; }
   .product-card-body h3 { font-size: 0.88rem; }
   .price-wrap .price { font-size: 0.95rem; }
+  .product-card .variant-pills { display: none; }
+  .product-card.has-variants .price-wrap { display: none; }
+  .product-card.has-variants .product-card-actions { margin-top: auto; }
 
   .studio-card { padding: 26px 22px; }
   .brand-explorer-box { padding: 24px 20px; }

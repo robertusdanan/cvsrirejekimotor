@@ -282,7 +282,7 @@ require __DIR__ . '/../templates/header.php';
               ];
           }
         ?>
-        <article class="product-card reveal" style="--reveal-delay: <?= min($i % 8, 7) * 0.04 ?>s">
+        <article class="product-card reveal<?= $hasVariants ? ' has-variants' : '' ?>" style="--reveal-delay: <?= min($i % 8, 7) * 0.04 ?>s">
           <a class="product-card-image" href="/produk/<?= e($p['slug']) ?>" aria-label="<?= e($p['nama_produk']) ?>">
             <?php if (!empty($p['primary_image'])): ?>
             <img class="variant-img" src="<?= e(mediaUrl($p['primary_image'])) ?>" alt="<?= e($p['nama_produk']) ?>" loading="lazy">
